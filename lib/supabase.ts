@@ -12,7 +12,9 @@ export const supabase: SupabaseClient<Database> | null =
     ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
         auth: {
           autoRefreshToken: true,
-          detectSessionInUrl: true,
+          // Disable URL token parsing so Vercel preview/deploy URLs cannot
+          // trigger Supabase auth callback path errors during app boot.
+          detectSessionInUrl: false,
           persistSession: true
         }
       })
