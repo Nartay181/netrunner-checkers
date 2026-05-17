@@ -120,7 +120,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 grid place-items-center overflow-x-hidden overflow-y-auto bg-black/88 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-8"
+          className="fixed inset-0 z-[9999] grid place-items-center overflow-x-hidden overflow-y-auto bg-black/88 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
