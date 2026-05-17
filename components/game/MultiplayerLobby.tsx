@@ -177,9 +177,14 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-l border-danger bg-danger/10 px-3 py-2 text-xs uppercase leading-relaxed text-danger"
+            className="grid gap-2 border-l border-danger bg-danger/10 px-3 py-2 text-xs uppercase leading-relaxed text-danger"
           >
-            [AUTH ERROR]: {auth.error}
+            <p>[AUTH ERROR]: {auth.error}</p>
+            {auth.debugError && (
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap border border-danger/25 bg-black/55 p-2 text-[10px] normal-case leading-relaxed text-danger/85">
+                {auth.debugError}
+              </pre>
+            )}
           </motion.div>
         )}
 
