@@ -85,16 +85,28 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     setOauthLoading(true);
 
     try {
+      // Безопасно определяем URL для возврата
+      const fallbackRedirect = typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : "https://netrunner-checkers.vercel.app"; // Замени на свой реальный урл Vercel, если пуллбек не сработает
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin
+          redirectTo: fallbackRedirect,
+          skipBrowserRedirect: false // Явно просим Supabase сделать редирект самостоятельно
         }
       });
 
       if (error) {
         pushLog(`[AUTH_FAILURE]: ${error.message}`);
         setOauthLoading(false);
+        return;
+      }
+
+      // ЖЕСТКИЙ МОБИЛЬНЫЙ ФОЛЛБЭК: Если Supabase вернул URL, но сам не редиректит — толкаем вручную
+      if (data?.url) {
+        window.location.href = data.url;
         return;
       }
 
