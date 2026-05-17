@@ -5,6 +5,7 @@ import {
   BOARD_SIZE,
   type BoardState,
   type Coordinate,
+  type NodeSide,
   coordinateKey,
   getSquareName,
   isPlayableSquare,
@@ -13,6 +14,7 @@ import {
 import { NodePiece } from "./NodePiece";
 
 type CyberBoardProps = {
+  botSide: NodeSide | null;
   board: BoardState;
   captureDestinationKeys: Set<string>;
   captureRequired: boolean;
@@ -20,10 +22,12 @@ type CyberBoardProps = {
   forcedFrom: Coordinate | null;
   legalDestinationKeys: Set<string>;
   selected: Coordinate | null;
+  disabled: boolean;
   onCellClick: (row: number, col: number) => void;
 };
 
 export function CyberBoard({
+  botSide,
   board,
   captureDestinationKeys,
   captureRequired,
@@ -31,6 +35,7 @@ export function CyberBoard({
   forcedFrom,
   legalDestinationKeys,
   selected,
+  disabled,
   onCellClick
 }: CyberBoardProps) {
   return (
@@ -60,7 +65,11 @@ export function CyberBoard({
                   aria-label={`${getSquareName({ row, col })}${
                     piece ? ` ${piece.side} ${piece.king ? "root node" : "node"}` : ""
                   }`}
-                  onClick={() => onCellClick(row, col)}
+                  onClick={() => {
+                    if (!disabled) {
+                      onCellClick(row, col);
+                    }
+                  }}
                   whileHover={
                     playable
                       ? {
@@ -84,9 +93,12 @@ export function CyberBoard({
                     isForcedChainNode
                       ? "ring-2 ring-danger/80 ring-offset-2 ring-offset-black"
                       : "",
+                    disabled ? "cursor-wait" : "",
                     canMoveTarget
                       ? "cursor-crosshair shadow-[inset_0_0_24px_rgba(0,243,255,0.16)]"
-                      : "cursor-pointer"
+                      : disabled
+                        ? ""
+                        : "cursor-pointer"
                   ].join(" ")}
                 >
                   <span
@@ -122,6 +134,7 @@ export function CyberBoard({
                   <AnimatePresence mode="popLayout">
                     {piece && (
                       <NodePiece
+                        isBotSide={piece.side === botSide}
                         piece={piece}
                         selected={isSelected}
                         mustCapture={hasMandatoryJump}

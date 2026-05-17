@@ -1,13 +1,15 @@
 "use client";
 
-import { Lock, Terminal, Zap } from "lucide-react";
+import { Lock, RotateCcw, Terminal, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 type HeaderBarProps = {
+  modeLabel?: string;
+  onReset?: () => void;
   turnLabel: string;
 };
 
-export function HeaderBar({ turnLabel }: HeaderBarProps) {
+export function HeaderBar({ modeLabel, onReset, turnLabel }: HeaderBarProps) {
   return (
     <header className="relative z-10 flex flex-col gap-4 border-b border-cyber/20 px-4 py-4 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -30,6 +32,25 @@ export function HeaderBar({ turnLabel }: HeaderBarProps) {
             <Zap className="h-4 w-4" aria-hidden="true" />
             <span>Turn: {turnLabel}</span>
           </div>
+
+          {modeLabel && (
+            <div className="rounded-md border border-cyber/25 bg-black/45 px-3 py-2 text-xs font-bold uppercase text-cyber">
+              {modeLabel}
+            </div>
+          )}
+
+          {onReset && (
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onReset}
+              className="inline-flex items-center gap-2 rounded-md border border-cyber/35 bg-cyber/10 px-4 py-2 text-xs font-bold uppercase text-cyber shadow-cyber-soft"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              <span>New Match</span>
+            </motion.button>
+          )}
 
           <motion.button
             type="button"

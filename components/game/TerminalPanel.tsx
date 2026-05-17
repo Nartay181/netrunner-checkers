@@ -1,16 +1,24 @@
 "use client";
 
 import { Activity, Cpu, ShieldAlert, Terminal } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { NodeSide } from "@/lib/checkers";
+import type { MatchStatus } from "./useCheckers";
 
 type TerminalPanelProps = {
+  aiThinking: boolean;
+  botEnabled: boolean;
   logs: string[];
+  matchStatus: MatchStatus | null;
   nodeCounts: Record<NodeSide, number>;
   selectedSquare: string | null;
 };
 
 export function TerminalPanel({
+  aiThinking,
+  botEnabled,
   logs,
+  matchStatus,
   nodeCounts,
   selectedSquare
 }: TerminalPanelProps) {
@@ -33,24 +41,49 @@ export function TerminalPanel({
           <p className="text-lg font-black text-white">{nodeCounts.runner}</p>
         </div>
         <div className="border-r border-cyber/15 px-3 py-3">
-          <div className="mb-1 flex items-center justify-center gap-1 text-cyber">
+          <div
+            className={[
+              "mb-1 flex items-center justify-center gap-1",
+              botEnabled ? "text-danger" : "text-cyber"
+            ].join(" ")}
+          >
             <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
-            Daemon
+            {botEnabled ? "Kernel" : "Daemon"}
           </div>
           <p className="text-lg font-black text-white">{nodeCounts.daemon}</p>
         </div>
         <div className="px-3 py-3">
           <div className="mb-1 flex items-center justify-center gap-1 text-danger">
             <Activity className="h-3.5 w-3.5" aria-hidden="true" />
-            Trace
+            {matchStatus ? "Winner" : "Trace"}
           </div>
           <p className="truncate text-lg font-black text-white">
-            {selectedSquare ?? "--"}
+            {matchStatus?.winner.toUpperCase() ?? selectedSquare ?? "--"}
           </p>
         </div>
       </div>
 
       <div className="terminal-scroll flex-1 space-y-2 overflow-y-auto px-4 py-4">
+        <AnimatePresence>
+          {aiThinking && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="relative overflow-hidden border-l border-danger bg-danger/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-danger"
+            >
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-danger/20 to-transparent"
+                animate={{ x: ["-110%", "220%"] }}
+                transition={{ duration: 1.05, repeat: Infinity, ease: "linear" }}
+              />
+              <span className="relative">
+                [SYSTEM]: Scanning netspaces for optimal vectors...
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {logs.map((log, index) => (
           <p
             key={`${log}-${index}`}

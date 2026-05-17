@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AI_SIDE,
+  chooseAiMove,
+  type AiDifficulty
+} from "@/lib/ai";
 import {
   applyLegalMove,
   coordinateKey,
@@ -16,19 +21,38 @@ import {
   type LegalMove,
   type NodeSide
 } from "@/lib/checkers";
+import type { GameMode } from "./MatchSetup";
 
 const INITIAL_LOGS = [
-  "[SYSTEM]: Netrunner Checkers v0.2 Russian ruleset online",
+  "[SYSTEM]: Netrunner Checkers v0.3 AI uplink online",
   "[SYSTEM]: Matrix grid synchronized on 64 nodes",
   "[TRACE]: Mandatory capture protocol enabled"
 ];
 
-export function useCheckers() {
+export type MatchStatus = {
+  reason: string;
+  winner: NodeSide;
+};
+
+type UseCheckersOptions = {
+  aiDifficulty: AiDifficulty;
+  mode: GameMode;
+  onMatchEnd?: (status: MatchStatus) => void;
+};
+
+export function useCheckers({
+  aiDifficulty,
+  mode,
+  onMatchEnd
+}: UseCheckersOptions) {
   const [board, setBoard] = useState<BoardState>(() => createInitialBoard());
   const [selected, setSelected] = useState<Coordinate | null>(null);
   const [forcedFrom, setForcedFrom] = useState<Coordinate | null>(null);
   const [activeSide, setActiveSide] = useState<NodeSide>("runner");
   const [logs, setLogs] = useState<string[]>(INITIAL_LOGS);
+  const [aiThinking, setAiThinking] = useState(false);
+  const [matchStatus, setMatchStatus] = useState<MatchStatus | null>(null);
+  const matchEndedRef = useRef(false);
 
   const legalMoves = useMemo(
     () => getAllLegalMoves(board, activeSide, forcedFrom),
@@ -86,6 +110,65 @@ export function useCheckers() {
       ),
     [board]
   );
+  const isAiTurn = mode === "ai" && activeSide === AI_SIDE && !matchStatus;
+
+  useEffect(() => {
+    if (matchEndedRef.current) {
+      return;
+    }
+
+    if (nodeCounts[activeSide] > 0 && legalMoves.length > 0) {
+      return;
+    }
+
+    const winner = getOpponent(activeSide);
+    const status = {
+      winner,
+      reason:
+        nodeCounts[activeSide] === 0
+          ? `${activeSide.toUpperCase()} nodes depleted`
+          : `${activeSide.toUpperCase()} has no legal vectors`
+    };
+
+    matchEndedRef.current = true;
+    setAiThinking(false);
+    setSelected(null);
+    setForcedFrom(null);
+    setMatchStatus(status);
+    pushLogs([
+      `[SYSTEM]: MATCH COMPLETE | WINNER: ${winner.toUpperCase()}`,
+      `[TRACE]: ${status.reason}.`
+    ]);
+    onMatchEnd?.(status);
+  }, [activeSide, legalMoves, nodeCounts, onMatchEnd]);
+
+  useEffect(() => {
+    if (!isAiTurn || legalMoves.length === 0) {
+      setAiThinking(false);
+      return;
+    }
+
+    setAiThinking(true);
+    pushLog("[SYSTEM]: Scanning netspaces for optimal vectors...");
+
+    const delay = 1000 + Math.floor(Math.random() * 1000);
+    const timeout = window.setTimeout(() => {
+      const move = chooseAiMove({
+        board,
+        difficulty: aiDifficulty,
+        legalMoves,
+        side: AI_SIDE
+      });
+
+      if (move) {
+        executeMove(move);
+      }
+
+      setAiThinking(false);
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [aiDifficulty, board, isAiTurn, legalMoves]);
 
   function pushLogs(messages: string[]) {
     setLogs((current) => [...messages, ...current].slice(0, 16));
@@ -96,6 +179,16 @@ export function useCheckers() {
   }
 
   function handleCellClick(row: number, col: number) {
+    if (matchStatus) {
+      pushLog("[SYSTEM]: Match complete. Reinitialize a new breach.");
+      return;
+    }
+
+    if (isAiTurn) {
+      pushLog("[SYSTEM]: Kernel Security Bot controls this vector.");
+      return;
+    }
+
     const target = { row, col };
     const targetPiece = board[row][col];
 
@@ -195,8 +288,12 @@ export function useCheckers() {
     captureSourceKeys,
     forcedFrom,
     handleCellClick,
+    isAiTurn,
+    aiThinking,
     legalDestinationKeys,
     logs,
+    matchStatus,
+    mode,
     nodeCounts,
     selected,
     selectedSquare

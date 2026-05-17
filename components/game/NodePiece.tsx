@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { CheckersPiece } from "@/lib/checkers";
 
 type NodePieceProps = {
+  isBotSide: boolean;
   piece: CheckersPiece;
   selected: boolean;
   mustCapture: boolean;
@@ -25,8 +26,20 @@ const sideClasses = {
   }
 };
 
-export function NodePiece({ piece, selected, mustCapture }: NodePieceProps) {
-  const classes = sideClasses[piece.side];
+const botClasses = {
+  shell:
+    "border-danger/80 bg-danger/12 text-danger shadow-[0_0_18px_rgba(255,0,60,0.44),inset_0_0_18px_rgba(255,0,60,0.16)]",
+  core: "bg-danger",
+  ring: "border-danger/40"
+};
+
+export function NodePiece({
+  isBotSide,
+  piece,
+  selected,
+  mustCapture
+}: NodePieceProps) {
+  const classes = isBotSide ? botClasses : sideClasses[piece.side];
   const Icon = piece.king ? Crown : Cpu;
 
   return (
