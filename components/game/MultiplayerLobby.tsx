@@ -12,7 +12,6 @@ import {
   Wifi,
   WifiOff
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import {
   createRemoteRoom,
   joinRemoteRoom,
@@ -23,6 +22,7 @@ import {
 import type { NodeSide } from "@/lib/checkers";
 
 type MultiplayerLobbyProps = {
+  authUsername: string;
   onStartRemote: (
     roomCode: string,
     playerName: string,
@@ -31,10 +31,11 @@ type MultiplayerLobbyProps = {
   ) => void;
 };
 
-export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
-  const auth = useAuth({ autoAnonymous: true });
+export function MultiplayerLobby({
+  authUsername,
+  onStartRemote
+}: MultiplayerLobbyProps) {
   const [activePanel, setActivePanel] = useState<"create" | "join">("create");
-  const [playerName, setPlayerName] = useState("ALMATY_RUNNER");
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [roomSnapshot, setRoomSnapshot] = useState<RoomSnapshot | null>(null);
   const [joinCode, setJoinCode] = useState("");
@@ -52,7 +53,7 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
 
     return `${window.location.origin}?room=${encodeURIComponent(roomCode)}`;
   }, [roomCode]);
-  const authUnavailable = !auth.loading && !auth.user;
+  const playerName = authUsername.trim() || "ALMATY_RUNNER";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -84,10 +85,6 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
   }, [roomCode]);
 
   async function createRoom() {
-    if (auth.loading) {
-      return;
-    }
-
     setPendingAction("create");
     setError(null);
     setCopied(false);
@@ -115,10 +112,6 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
   }
 
   async function joinRoom() {
-    if (auth.loading) {
-      return;
-    }
-
     setPendingAction("join");
     setError(null);
 
@@ -159,7 +152,7 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
           <span>Remote Shell</span>
         </div>
         <span className="rounded-md border border-matrix/30 px-2 py-1 text-[10px] uppercase text-matrix">
-          {auth.loading ? "Auth linking" : "Supabase live"}
+          Supabase live
         </span>
       </div>
 
@@ -168,25 +161,10 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
           Operator alias
           <input
             value={playerName}
-            onChange={(event) => setPlayerName(event.target.value)}
-            className="rounded-md border border-cyber/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none transition focus:border-matrix/70"
+            readOnly
+            className="rounded-md border border-matrix/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none shadow-matrix-soft"
           />
         </label>
-
-        {auth.error && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid gap-2 border-l border-danger bg-danger/10 px-3 py-2 text-xs uppercase leading-relaxed text-danger"
-          >
-            <p>[AUTH ERROR]: {auth.error}</p>
-            {auth.debugError && (
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap border border-danger/25 bg-black/55 p-2 text-[10px] normal-case leading-relaxed text-danger/85">
-                {auth.debugError}
-              </pre>
-            )}
-          </motion.div>
-        )}
 
         {error && (
           <motion.div
@@ -235,23 +213,17 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={createRoom}
-                disabled={
-                  auth.loading || authUnavailable || Boolean(pendingAction)
-                }
+                disabled={Boolean(pendingAction)}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-cyber/45 bg-cyber/10 px-4 py-2 text-xs font-bold uppercase text-cyber shadow-cyber-soft disabled:cursor-wait disabled:opacity-60"
               >
-                {pendingAction === "create" || auth.loading ? (
+                {pendingAction === "create" ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
                   <Satellite className="h-4 w-4" aria-hidden="true" />
                 )}
-                {auth.loading
-                  ? "Authenticating operator"
-                  : pendingAction === "create"
-                    ? "Opening encrypted socket"
-                    : authUnavailable
-                      ? "Auth Required"
-                      : "Create Private Session"}
+                {pendingAction === "create"
+                  ? "Opening encrypted socket"
+                  : "Create Private Session"}
               </motion.button>
             ) : (
               <div className="grid gap-2 rounded-md border border-matrix/25 bg-black/35 p-3">
@@ -270,25 +242,19 @@ export function MultiplayerLobby({ onStartRemote }: MultiplayerLobbyProps) {
                   whileTap={{ scale: 0.98 }}
                   onClick={joinRoom}
                   disabled={
-                    auth.loading ||
-                    authUnavailable ||
                     Boolean(pendingAction) ||
                     joinCode.trim().length === 0
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-matrix/45 bg-matrix/10 px-4 py-2 text-xs font-bold uppercase text-matrix shadow-matrix-soft disabled:cursor-wait disabled:opacity-60"
                 >
-                  {pendingAction === "join" || auth.loading ? (
+                  {pendingAction === "join" ? (
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
                     <LogIn className="h-4 w-4" aria-hidden="true" />
                   )}
-                  {auth.loading
-                    ? "Authenticating operator"
-                    : pendingAction === "join"
-                      ? "Linking remote daemon"
-                      : authUnavailable
-                        ? "Auth Required"
-                        : "Join Session by Code"}
+                  {pendingAction === "join"
+                    ? "Linking remote daemon"
+                    : "Join Session by Code"}
                 </motion.button>
               </div>
             )}

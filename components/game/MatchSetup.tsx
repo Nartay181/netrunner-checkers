@@ -23,6 +23,7 @@ export type MatchConfig = {
 };
 
 type MatchSetupProps = {
+  authUsername: string;
   leaderboardRows: LeaderboardRow[];
   onStartRemote: (
     roomCode: string,
@@ -40,6 +41,7 @@ const difficultyIcons = {
 };
 
 export function MatchSetup({
+  authUsername,
   leaderboardRows,
   onStart,
   onStartRemote
@@ -115,7 +117,10 @@ export function MatchSetup({
           </div>
         </div>
 
-        <MultiplayerLobby onStartRemote={onStartRemote} />
+        <MultiplayerLobby
+          authUsername={authUsername}
+          onStartRemote={onStartRemote}
+        />
       </section>
 
       <LeaderboardPanel rows={leaderboardRows} />

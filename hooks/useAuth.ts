@@ -7,19 +7,16 @@ import { getMissingSupabaseEnvMessage } from "@/utils/supabase/env";
 import type { Database } from "@/utils/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 
-type UseAuthOptions = {
-  autoAnonymous?: boolean;
-};
-
-export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
+export function useAuth() {
   const supabase = useMemo(() => createClient(), []);
-  const [debugError, setDebugError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const username = getUsername(user, profile);
 
   const loadProfile = useCallback(
     async (nextUser: User | null) => {
@@ -36,10 +33,17 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
 
       if (profileError) {
         setError(profileError.message);
-        setDebugError(formatAuthDebugError(profileError, "loadProfile"));
       }
 
-      setProfile(data ?? null);
+      if (data) {
+        setProfile(data);
+        return;
+      }
+
+      const fallbackUsername = getUsername(nextUser, null);
+      const createdProfile = await ensureProfile(nextUser, fallbackUsername);
+
+      setProfile(createdProfile);
     },
     [supabase]
   );
@@ -47,11 +51,9 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setDebugError(null);
 
     if (!supabase) {
       setError(getMissingSupabaseEnvMessage());
-      setDebugError(formatAuthDebugError(null, "refresh:missing-client"));
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -64,75 +66,124 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
 
       if (sessionError) {
         setError(sessionError.message);
-        setDebugError(formatAuthDebugError(sessionError, "getSession"));
         setLoading(false);
         return;
       }
 
       let nextSession = data.session;
 
-      if (!nextSession && autoAnonymous) {
-        const anonymousResult = await supabase.auth.signInAnonymously();
-
-        if (anonymousResult.error) {
-          setError(anonymousResult.error.message);
-          setDebugError(
-            formatAuthDebugError(anonymousResult.error, "signInAnonymously")
-          );
-        }
-
-        nextSession = anonymousResult.data.session;
-      }
-
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       await loadProfile(nextSession?.user ?? null);
     } catch (caughtError) {
       setError(getAuthMessage(caughtError));
-      setDebugError(formatAuthDebugError(caughtError, "refresh:catch"));
-    } finally {
-      setLoading(false);
-    }
-  }, [autoAnonymous, loadProfile, supabase]);
-
-  const signInAnonymously = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setDebugError(null);
-
-    if (!supabase) {
-      setError(getMissingSupabaseEnvMessage());
-      setDebugError(formatAuthDebugError(null, "signInAnonymously:missing-client"));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error: signInError } =
-        await supabase.auth.signInAnonymously();
-
-      if (signInError) {
-        setError(signInError.message);
-        setDebugError(formatAuthDebugError(signInError, "signInAnonymously"));
-        setLoading(false);
-        return;
-      }
-
-      setSession(data.session);
-      setUser(data.user);
-      await loadProfile(data.user);
-    } catch (caughtError) {
-      setError(getAuthMessage(caughtError));
-      setDebugError(formatAuthDebugError(caughtError, "signInAnonymously:catch"));
     } finally {
       setLoading(false);
     }
   }, [loadProfile, supabase]);
 
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true);
+      setError(null);
+
+      if (!supabase) {
+        const message = getMissingSupabaseEnvMessage();
+
+        setError(message);
+        setLoading(false);
+        return { error: message };
+      }
+
+      try {
+        const { data, error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+
+        if (signInError) {
+          setError(signInError.message);
+          return { error: signInError.message };
+        }
+
+        setSession(data.session);
+        setUser(data.user);
+        await loadProfile(data.user);
+
+        return { error: null };
+      } catch (caughtError) {
+        const message = getAuthMessage(caughtError);
+
+        setError(message);
+        return { error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadProfile, supabase]
+  );
+
+  const signUp = useCallback(
+    async (email: string, password: string, nextUsername: string) => {
+      setLoading(true);
+      setError(null);
+
+      if (!supabase) {
+        const message = getMissingSupabaseEnvMessage();
+
+        setError(message);
+        setLoading(false);
+        return { error: message, needsConfirmation: false };
+      }
+
+      const normalizedUsername = sanitizeUsername(nextUsername);
+
+      try {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              city: "Almaty",
+              display_name: normalizedUsername,
+              username: normalizedUsername
+            }
+          }
+        });
+
+        if (signUpError) {
+          setError(signUpError.message);
+          return { error: signUpError.message, needsConfirmation: false };
+        }
+
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.user);
+        }
+
+        if (data.user && data.session) {
+          const createdProfile = await ensureProfile(data.user, normalizedUsername);
+
+          setProfile(createdProfile);
+        }
+
+        return { error: null, needsConfirmation: !data.session };
+      } catch (caughtError) {
+        const message = getAuthMessage(caughtError);
+
+        setError(message);
+        return { error: message, needsConfirmation: false };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [supabase]
+  );
+
   const signOut = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setDebugError(null);
 
     if (!supabase) {
       setSession(null);
@@ -147,11 +198,9 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
 
       if (signOutError) {
         setError(signOutError.message);
-        setDebugError(formatAuthDebugError(signOutError, "signOut"));
       }
     } catch (caughtError) {
       setError(getAuthMessage(caughtError));
-      setDebugError(formatAuthDebugError(caughtError, "signOut:catch"));
     }
 
     setSession(null);
@@ -179,18 +228,49 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
   }, [loadProfile, refresh, supabase]);
 
   return {
-    debugError,
     error,
     loading,
     profile,
     refresh,
     session,
-    signInAnonymously,
+    signIn,
+    signUp,
     signOut,
     supabase,
-    user
+    user,
+    username
   };
+
+  async function ensureProfile(nextUser: User, nextUsername: string) {
+    if (!supabase) {
+      return null;
+    }
+
+    const profilePayload: ProfileInsert = {
+      city: "Almaty",
+      country: "Kazakhstan",
+      display_name: nextUsername,
+      hack_rating: 1000,
+      id: nextUser.id,
+      username: nextUsername
+    };
+
+    const { data, error: upsertError } = await supabase
+      .from("profiles")
+      .upsert(profilePayload, { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (upsertError) {
+      setError(upsertError.message);
+      return null;
+    }
+
+    return data;
+  }
 }
+
+export type AuthController = ReturnType<typeof useAuth>;
 
 function getAuthMessage(error: unknown) {
   if (error instanceof Error) {
@@ -204,54 +284,20 @@ function getAuthMessage(error: unknown) {
   return "Unknown auth error.";
 }
 
-function formatAuthDebugError(error: unknown, source: string) {
-  const record =
-    error && typeof error === "object"
-      ? (error as Record<string, unknown>)
-      : {};
-  const windowHref =
-    typeof window === "undefined" ? "server-render" : window.location.href;
-
-  return [
-    `source=${source}`,
-    `window.location.href=${windowHref}`,
-    `name=${stringifyDebugValue(record.name)}`,
-    `message=${stringifyDebugValue(record.message ?? getAuthMessage(error))}`,
-    `code=${stringifyDebugValue(record.code)}`,
-    `status=${stringifyDebugValue(record.status)}`,
-    `stack=${stringifyDebugValue(record.stack)}`,
-    `raw=${safeStringify(error)}`
-  ].join("\n");
+function sanitizeUsername(username: string) {
+  return username.trim().replace(/\s+/g, "_").slice(0, 32) || "ALMATY_RUNNER";
 }
 
-function stringifyDebugValue(value: unknown) {
-  return value === undefined ? "undefined" : String(value);
-}
+function getUsername(user: User | null, profile: Profile | null) {
+  const metadataUsername = user?.user_metadata?.username;
 
-function safeStringify(value: unknown) {
-  if (value === null) {
-    return "null";
+  if (profile?.username) {
+    return profile.username;
   }
 
-  if (value === undefined) {
-    return "undefined";
+  if (typeof metadataUsername === "string" && metadataUsername.trim()) {
+    return metadataUsername.trim();
   }
 
-  if (value instanceof Error) {
-    return JSON.stringify(
-      {
-        message: value.message,
-        name: value.name,
-        stack: value.stack
-      },
-      null,
-      2
-    );
-  }
-
-  try {
-    return JSON.stringify(value, Object.getOwnPropertyNames(value), 2);
-  } catch {
-    return String(value);
-  }
+  return user?.email?.split("@")[0] ?? "UNAUTHENTICATED";
 }

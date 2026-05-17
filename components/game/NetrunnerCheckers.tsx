@@ -8,7 +8,9 @@ import {
 } from "@/lib/ai";
 import type { NodeSide } from "@/lib/checkers";
 import type { RoomSnapshot } from "@/lib/multiplayer";
+import { useAuth } from "@/hooks/useAuth";
 import { AICoachPanel } from "../AICoachPanel";
+import { AuthPanel } from "./AuthPanel";
 import { CyberBoard } from "./CyberBoard";
 import { HeaderBar } from "./HeaderBar";
 import {
@@ -23,6 +25,7 @@ import { TerminalPanel } from "./TerminalPanel";
 import { useCheckers, type MatchStatus } from "./useCheckers";
 
 export function NetrunnerCheckers() {
+  const auth = useAuth();
   const [matchConfig, setMatchConfig] = useState<MatchConfig | null>(null);
   const [matchKey, setMatchKey] = useState(0);
   const [proOpen, setProOpen] = useState(false);
@@ -77,11 +80,14 @@ export function NetrunnerCheckers() {
       {!matchConfig ? (
         <>
           <HeaderBar
+            authLabel={auth.user ? auth.username : undefined}
             modeLabel="Ready"
             onOpenPro={() => setProOpen(true)}
+            onSignOut={auth.user ? auth.signOut : undefined}
             turnLabel="SETUP"
           />
           <MatchSetup
+            authUsername={auth.username}
             leaderboardRows={leaderboardRows}
             onStart={handleStart}
             onStartRemote={handleStartRemote}
@@ -91,35 +97,42 @@ export function NetrunnerCheckers() {
         <ActiveMatch
           key={matchKey}
           config={matchConfig}
+          authUsername={auth.username}
           leaderboardRows={leaderboardRows}
           onHumanAiWin={handleHumanAiWin}
           onOpenPro={() => setProOpen(true)}
           onPlayAgain={() => handleStart(matchConfig)}
           onReset={handleReset}
+          onSignOut={auth.signOut}
         />
       )}
 
+      <AuthPanel auth={auth} open={!auth.user} />
       <ProModal open={proOpen} onClose={() => setProOpen(false)} />
     </main>
   );
 }
 
 type ActiveMatchProps = {
+  authUsername: string;
   config: MatchConfig;
   leaderboardRows: LeaderboardRow[];
   onHumanAiWin: (difficulty: AiDifficulty) => void;
   onOpenPro: () => void;
   onPlayAgain: () => void;
   onReset: () => void;
+  onSignOut: () => void;
 };
 
 function ActiveMatch({
+  authUsername,
   config,
   leaderboardRows,
   onHumanAiWin,
   onOpenPro,
   onPlayAgain,
-  onReset
+  onReset,
+  onSignOut
 }: ActiveMatchProps) {
   const handleMatchEnd = useCallback(
     (status: MatchStatus) => {
@@ -152,9 +165,11 @@ function ActiveMatch({
   return (
     <>
       <HeaderBar
+        authLabel={authUsername}
         modeLabel={modeLabel}
         onOpenPro={onOpenPro}
         onReset={onReset}
+        onSignOut={onSignOut}
         turnLabel={
           game.matchStatus
             ? `WIN: ${game.matchStatus.winner.toUpperCase()}`
@@ -184,6 +199,7 @@ function ActiveMatch({
         <div className="grid gap-5 lg:max-w-sm">
           <TerminalPanel
             aiThinking={game.aiThinking}
+            authUsername={authUsername}
             botEnabled={config.mode === "ai"}
             logs={game.logs}
             matchStatus={game.matchStatus}

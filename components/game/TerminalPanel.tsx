@@ -8,6 +8,7 @@ import type { MatchStatus } from "./useCheckers";
 
 type TerminalPanelProps = {
   aiThinking: boolean;
+  authUsername?: string;
   botEnabled: boolean;
   logs: string[];
   matchStatus: MatchStatus | null;
@@ -21,6 +22,7 @@ type TerminalPanelProps = {
 
 export function TerminalPanel({
   aiThinking,
+  authUsername,
   botEnabled,
   logs,
   matchStatus,
@@ -38,7 +40,14 @@ export function TerminalPanel({
           <Terminal className="h-4 w-4" aria-hidden="true" />
           <span>Terminal Output</span>
         </div>
-        <span className="h-2 w-2 rounded-full bg-matrix shadow-matrix-hard" />
+        <div className="flex items-center gap-2">
+          {authUsername && (
+            <span className="hidden max-w-[12rem] truncate text-[10px] font-bold uppercase text-matrix sm:inline">
+              NODE_AUTH: [{authUsername}]
+            </span>
+          )}
+          <span className="h-2 w-2 rounded-full bg-matrix shadow-matrix-hard" />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 border-b border-cyber/20 text-center text-xs uppercase">

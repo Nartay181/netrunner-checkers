@@ -7,23 +7,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 let warnedMissingClientEnv = false;
 
-if (typeof window !== "undefined") {
-  (window as Window & { __SUPABASE_DEBUG_URL?: string }).__SUPABASE_DEBUG_URL =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-  (
-    window as Window & { __SUPABASE_DEBUG_KEY_TYPE?: string }
-  ).__SUPABASE_DEBUG_KEY_TYPE =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 8);
-
-  console.log("[SUPABASE DEBUG]: client bootstrap", {
-    anonKeyPrefix: supabaseAnonKey.substring(0, 8),
-    hasAnonKey: Boolean(supabaseAnonKey),
-    hasUrl: Boolean(supabaseUrl),
-    href: window.location.href,
-    url: supabaseUrl
-  });
-}
-
 export const supabase: SupabaseClient<Database> | null =
   supabaseUrl && supabaseAnonKey
     ? createClient<Database>(supabaseUrl, supabaseAnonKey, {

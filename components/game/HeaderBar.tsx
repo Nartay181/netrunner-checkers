@@ -1,19 +1,23 @@
 "use client";
 
-import { Lock, RotateCcw, Terminal, Zap } from "lucide-react";
+import { Lock, LogOut, RotateCcw, Terminal, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 type HeaderBarProps = {
+  authLabel?: string;
   modeLabel?: string;
   onOpenPro?: () => void;
   onReset?: () => void;
+  onSignOut?: () => void;
   turnLabel: string;
 };
 
 export function HeaderBar({
+  authLabel,
   modeLabel,
   onOpenPro,
   onReset,
+  onSignOut,
   turnLabel
 }: HeaderBarProps) {
   return (
@@ -45,6 +49,12 @@ export function HeaderBar({
             </div>
           )}
 
+          {authLabel && (
+            <div className="rounded-md border border-matrix/25 bg-black/45 px-3 py-2 text-xs font-bold uppercase text-matrix">
+              NODE_AUTH: [{authLabel}] // SECURE_SESSION
+            </div>
+          )}
+
           {onReset && (
             <motion.button
               type="button"
@@ -55,6 +65,19 @@ export function HeaderBar({
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
               <span>New Match</span>
+            </motion.button>
+          )}
+
+          {onSignOut && (
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onSignOut}
+              className="inline-flex items-center gap-2 rounded-md border border-cyber/25 bg-black/45 px-3 py-2 text-xs font-bold uppercase text-cyber/80 transition hover:border-cyber/55 hover:text-cyber"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span>Logout</span>
             </motion.button>
           )}
 
