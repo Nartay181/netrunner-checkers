@@ -6,6 +6,7 @@ import {
   AI_SIDE,
   type AiDifficulty
 } from "@/lib/ai";
+import { AICoachPanel } from "./AICoachPanel";
 import { CyberBoard } from "./CyberBoard";
 import { HeaderBar } from "./HeaderBar";
 import {
@@ -15,12 +16,14 @@ import {
   type LeaderboardRow
 } from "./LeaderboardPanel";
 import { MatchSetup, type MatchConfig } from "./MatchSetup";
+import { ProModal } from "./ProModal";
 import { TerminalPanel } from "./TerminalPanel";
 import { useCheckers, type MatchStatus } from "./useCheckers";
 
 export function NetrunnerCheckers() {
   const [matchConfig, setMatchConfig] = useState<MatchConfig | null>(null);
   const [matchKey, setMatchKey] = useState(0);
+  const [proOpen, setProOpen] = useState(false);
   const [leaderboardRows, setLeaderboardRows] =
     useState<LeaderboardRow[]>(DEFAULT_LEADERBOARD);
 
@@ -31,6 +34,15 @@ export function NetrunnerCheckers() {
 
   function handleReset() {
     setMatchConfig(null);
+  }
+
+  function handleStartRemote(roomCode: string, playerName: string) {
+    handleStart({
+      difficulty: "script-kiddie",
+      mode: "remote",
+      playerName,
+      roomCode
+    });
   }
 
   const handleHumanAiWin = useCallback((difficulty: AiDifficulty) => {
@@ -55,8 +67,16 @@ export function NetrunnerCheckers() {
 
       {!matchConfig ? (
         <>
-          <HeaderBar modeLabel="Ready" turnLabel="SETUP" />
-          <MatchSetup leaderboardRows={leaderboardRows} onStart={handleStart} />
+          <HeaderBar
+            modeLabel="Ready"
+            onOpenPro={() => setProOpen(true)}
+            turnLabel="SETUP"
+          />
+          <MatchSetup
+            leaderboardRows={leaderboardRows}
+            onStart={handleStart}
+            onStartRemote={handleStartRemote}
+          />
         </>
       ) : (
         <ActiveMatch
@@ -64,9 +84,12 @@ export function NetrunnerCheckers() {
           config={matchConfig}
           leaderboardRows={leaderboardRows}
           onHumanAiWin={handleHumanAiWin}
+          onOpenPro={() => setProOpen(true)}
           onReset={handleReset}
         />
       )}
+
+      <ProModal open={proOpen} onClose={() => setProOpen(false)} />
     </main>
   );
 }
@@ -75,6 +98,7 @@ type ActiveMatchProps = {
   config: MatchConfig;
   leaderboardRows: LeaderboardRow[];
   onHumanAiWin: (difficulty: AiDifficulty) => void;
+  onOpenPro: () => void;
   onReset: () => void;
 };
 
@@ -82,6 +106,7 @@ function ActiveMatch({
   config,
   leaderboardRows,
   onHumanAiWin,
+  onOpenPro,
   onReset
 }: ActiveMatchProps) {
   const handleMatchEnd = useCallback(
@@ -96,7 +121,9 @@ function ActiveMatch({
   const game = useCheckers({
     aiDifficulty: config.difficulty,
     mode: config.mode,
-    onMatchEnd: handleMatchEnd
+    onMatchEnd: handleMatchEnd,
+    playerName: config.playerName,
+    roomCode: config.roomCode
   });
   const difficulty = AI_DIFFICULTIES.find(
     (option) => option.id === config.difficulty
@@ -104,12 +131,15 @@ function ActiveMatch({
   const modeLabel =
     config.mode === "ai"
       ? `VS AI: ${difficulty?.shortLabel ?? "Kernel"}`
+      : config.mode === "remote"
+        ? `REMOTE: ${config.roomCode ?? "PRIVATE"}`
       : "LOCAL PVP";
 
   return (
     <>
       <HeaderBar
         modeLabel={modeLabel}
+        onOpenPro={onOpenPro}
         onReset={onReset}
         turnLabel={
           game.matchStatus
@@ -140,6 +170,10 @@ function ActiveMatch({
             matchStatus={game.matchStatus}
             nodeCounts={game.nodeCounts}
             selectedSquare={game.selectedSquare}
+          />
+          <AICoachPanel
+            matchStatus={game.matchStatus}
+            moveHistory={game.moveHistory}
           />
           <LeaderboardPanel rows={leaderboardRows} />
         </div>

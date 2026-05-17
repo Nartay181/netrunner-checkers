@@ -7,16 +7,20 @@ import {
   type AiDifficulty
 } from "@/lib/ai";
 import { LeaderboardPanel, type LeaderboardRow } from "./LeaderboardPanel";
+import { MultiplayerLobby } from "./MultiplayerLobby";
 
-export type GameMode = "pvp" | "ai";
+export type GameMode = "pvp" | "ai" | "remote";
 
 export type MatchConfig = {
   difficulty: AiDifficulty;
   mode: GameMode;
+  playerName?: string;
+  roomCode?: string;
 };
 
 type MatchSetupProps = {
   leaderboardRows: LeaderboardRow[];
+  onStartRemote: (roomCode: string, playerName: string) => void;
   onStart: (config: MatchConfig) => void;
 };
 
@@ -26,7 +30,11 @@ const difficultyIcons = {
   "rogue-ai": Skull
 };
 
-export function MatchSetup({ leaderboardRows, onStart }: MatchSetupProps) {
+export function MatchSetup({
+  leaderboardRows,
+  onStart,
+  onStartRemote
+}: MatchSetupProps) {
   return (
     <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:px-8 lg:py-8">
       <section className="cyber-panel grid content-start gap-5 rounded-lg p-5">
@@ -97,6 +105,8 @@ export function MatchSetup({ leaderboardRows, onStart }: MatchSetupProps) {
             </div>
           </div>
         </div>
+
+        <MultiplayerLobby onStartRemote={onStartRemote} />
       </section>
 
       <LeaderboardPanel rows={leaderboardRows} />

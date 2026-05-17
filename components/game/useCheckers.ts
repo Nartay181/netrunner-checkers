@@ -21,6 +21,11 @@ import {
   type LegalMove,
   type NodeSide
 } from "@/lib/checkers";
+import {
+  subscribeToRoom,
+  syncRoomSnapshot,
+  type RoomSnapshot
+} from "@/lib/multiplayer";
 import type { GameMode } from "./MatchSetup";
 
 const INITIAL_LOGS = [
@@ -31,19 +36,35 @@ const INITIAL_LOGS = [
 
 export type MatchStatus = {
   reason: string;
-  winner: NodeSide;
+  winner: NodeSide | "draw";
+};
+
+export type MoveRecord = {
+  captured?: string;
+  chainContinued: boolean;
+  from: string;
+  id: string;
+  kind: "move" | "capture";
+  promoted: boolean;
+  sequence: number;
+  side: NodeSide;
+  to: string;
 };
 
 type UseCheckersOptions = {
   aiDifficulty: AiDifficulty;
   mode: GameMode;
   onMatchEnd?: (status: MatchStatus) => void;
+  playerName?: string;
+  roomCode?: string;
 };
 
 export function useCheckers({
   aiDifficulty,
   mode,
-  onMatchEnd
+  onMatchEnd,
+  playerName = "anonymous-runner",
+  roomCode
 }: UseCheckersOptions) {
   const [board, setBoard] = useState<BoardState>(() => createInitialBoard());
   const [selected, setSelected] = useState<Coordinate | null>(null);
@@ -52,7 +73,9 @@ export function useCheckers({
   const [logs, setLogs] = useState<string[]>(INITIAL_LOGS);
   const [aiThinking, setAiThinking] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchStatus | null>(null);
+  const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
   const matchEndedRef = useRef(false);
+  const remoteSyncingRef = useRef(false);
 
   const legalMoves = useMemo(
     () => getAllLegalMoves(board, activeSide, forcedFrom),
@@ -111,6 +134,37 @@ export function useCheckers({
     [board]
   );
   const isAiTurn = mode === "ai" && activeSide === AI_SIDE && !matchStatus;
+
+  useEffect(() => {
+    if (mode !== "remote" || !roomCode) {
+      return;
+    }
+
+    return subscribeToRoom(roomCode, (snapshot) => {
+      remoteSyncingRef.current = true;
+      setBoard(snapshot.boardState);
+      setActiveSide(snapshot.currentTurn);
+      setLogs(snapshot.logs);
+      remoteSyncingRef.current = false;
+    });
+  }, [mode, roomCode]);
+
+  useEffect(() => {
+    if (mode !== "remote" || !roomCode || remoteSyncingRef.current) {
+      return;
+    }
+
+    const snapshot: RoomSnapshot = {
+      boardState: board,
+      currentTurn: activeSide,
+      logs,
+      players: { runner: playerName },
+      roomCode,
+      status: matchStatus ? "complete" : "active"
+    };
+
+    void syncRoomSnapshot(snapshot);
+  }, [activeSide, board, logs, matchStatus, mode, playerName, roomCode]);
 
   useEffect(() => {
     if (matchEndedRef.current) {
@@ -261,10 +315,25 @@ export function useCheckers({
       move.kind === "capture"
         ? getCaptureMovesForPiece(result.board, move.to)
         : [];
+    const chainContinued = continuingCaptures.length > 0;
 
     setBoard(result.board);
+    setMoveHistory((current) => [
+      ...current,
+      {
+        captured: move.captured ? getSquareName(move.captured) : undefined,
+        chainContinued,
+        from: getSquareName(move.from),
+        id: `${current.length + 1}-${getSquareName(move.from)}-${getSquareName(move.to)}`,
+        kind: move.kind,
+        promoted: result.promoted,
+        sequence: current.length + 1,
+        side: activeSide,
+        to: getSquareName(move.to)
+      }
+    ]);
 
-    if (continuingCaptures.length > 0) {
+    if (chainContinued) {
       setSelected(move.to);
       setForcedFrom(move.to);
       pushLogs([
@@ -294,6 +363,7 @@ export function useCheckers({
     logs,
     matchStatus,
     mode,
+    moveHistory,
     nodeCounts,
     selected,
     selectedSquare
