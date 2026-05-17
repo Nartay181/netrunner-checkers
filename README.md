@@ -22,21 +22,22 @@
 ![Netrunner Checkers Google](/public/assets/google.png)
 * **Бесшовная авторизация:** Быстрый вход в один клик через Google Auth или зашифрованный терминал регистрации.
 * **Автоматический парсинг метаданных:** Система вытягивает реальное имя пользователя из Google-аккаунта при первой авторизации, предотвращая появление дубликатов и фейковых ников.
-![Netrunner Checkers Main HUD](/public/assets/meta.png)
+![Netrunner Checkers Meta](/public/assets/meta.png)
 * **Bypass Email Validation:** Настройки бэкенда оптимизированы для мгновенного создания аккаунтов без ожидания писем-подтверждений.
 
 ### 3. Динамический Leaderboard & Elo Rating Matrix `[ РЕАЛИЗОВАНО ]`
-![Netrunner Checkers Main HUD](/public/assets/leaderboard.png)
+![Netrunner Checkers Leaderboard](/public/assets/leaderboard.png)
 * **Интеграция с PostgreSQL:** Рейтинги подтягиваются в реальном времени из таблицы `public.profiles`.
 * **Система Elo:** Динамический расчет уровня мастерства (все новые аккаунты по умолчанию получают `1000 ELO`и статус `BRONZE RUNNER`).
 * **Локальный фильтр (Almaty Node):** Быстрое переключение между глобальной сетью (`[ ALL NETWORKS ]`) и локальным узлом (`[ ALMATY NODE ]`) для фильтрации игроков из Алматы.
 
 ### 4. Архивация & Game History Archive `[ РЕАЛИЗОВАНО ]`
-![Netrunner Checkers Main HUD](/public/assets/gamehistory.png)
+![Netrunner Checkers Game History](/public/assets/gamehistory.png)
 * **Выделенная таблица данных:** Все завершенные сессии логируются в изолированную таблицу `public.match_history` (разведение real-time комнат и архивных данных).
 * **Журнал транзакций:** Панель отображает историю игр текущего пользователя в формате: `[DATE] | [OPPONENT] | [RESULT] | [ELO CHANGE]`.
 
 ### 5. AI Cyber-Coach v2.0 & Полный Адаптив `[ РЕАЛИЗОВАНО ]`
+![Netrunner Checkers AI Coach](/public/assets/AICoach.gif)
 * **Тактический оверлей:** ИИ-подсказки разворачиваются в эффектный полноэкранный HUD с typewriter-эффектом (имитация хакерского взлома и печатающегося текста).
 * **Responsive Layout:** Интерфейс плавно адаптируется под экраны планшетов и мобильных устройств, перестраивая трехколоночную сетку в удобный вертикальный стек без горизонтального скролла (`overflow-x-hidden`).
 ---
