@@ -1,32 +1,18 @@
 import type { BoardState, NodeSide } from "./checkers";
+import { createClient } from "@/utils/supabase/client";
+import type { Database, Json } from "@/utils/supabase/types";
 
-export type GameRow = {
-  id?: string;
-  room_code: string;
-  board_state: BoardState;
-  current_turn: NodeSide;
-  logs: string[];
-  players: Record<string, string>;
-  status: "waiting" | "active" | "complete";
+export type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
+export type GameRow = Database["public"]["Tables"]["games"]["Row"];
+export type GameUpdate = Database["public"]["Tables"]["games"]["Update"];
+export type { Json };
+
+export type RemotePlayer = {
+  id: string;
+  name: string;
+  side: NodeSide;
 };
 
-type RealtimeChannel = {
-  on: (
-    event: "postgres_changes",
-    filter: Record<string, string>,
-    callback: (payload: { new: GameRow }) => void
-  ) => RealtimeChannel;
-  subscribe: () => { unsubscribe?: () => void };
-};
-
-export type SupabaseClientLike = {
-  channel: (name: string) => RealtimeChannel;
-  from: (table: "games") => {
-    upsert: (row: Partial<GameRow> & { room_code: string }) => Promise<unknown>;
-  };
-};
-
-// TODO: Replace this shim with your configured Supabase export, for example:
-// import { supabase } from "./supabase";
-// export { supabase };
-export const supabase: SupabaseClientLike | null = null;
+export function getSupabaseClient() {
+  return createClient();
+}

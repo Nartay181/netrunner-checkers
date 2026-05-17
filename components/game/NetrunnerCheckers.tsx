@@ -6,7 +6,9 @@ import {
   AI_SIDE,
   type AiDifficulty
 } from "@/lib/ai";
-import { AICoachPanel } from "./AICoachPanel";
+import type { NodeSide } from "@/lib/checkers";
+import type { RoomSnapshot } from "@/lib/multiplayer";
+import { AICoachPanel } from "../AICoachPanel";
 import { CyberBoard } from "./CyberBoard";
 import { HeaderBar } from "./HeaderBar";
 import {
@@ -36,11 +38,18 @@ export function NetrunnerCheckers() {
     setMatchConfig(null);
   }
 
-  function handleStartRemote(roomCode: string, playerName: string) {
+  function handleStartRemote(
+    roomCode: string,
+    playerName: string,
+    playerSide: NodeSide,
+    snapshot: RoomSnapshot
+  ) {
     handleStart({
       difficulty: "script-kiddie",
+      initialRoomSnapshot: snapshot,
       mode: "remote",
       playerName,
+      playerSide,
       roomCode
     });
   }
@@ -85,6 +94,7 @@ export function NetrunnerCheckers() {
           leaderboardRows={leaderboardRows}
           onHumanAiWin={handleHumanAiWin}
           onOpenPro={() => setProOpen(true)}
+          onPlayAgain={() => handleStart(matchConfig)}
           onReset={handleReset}
         />
       )}
@@ -99,6 +109,7 @@ type ActiveMatchProps = {
   leaderboardRows: LeaderboardRow[];
   onHumanAiWin: (difficulty: AiDifficulty) => void;
   onOpenPro: () => void;
+  onPlayAgain: () => void;
   onReset: () => void;
 };
 
@@ -107,6 +118,7 @@ function ActiveMatch({
   leaderboardRows,
   onHumanAiWin,
   onOpenPro,
+  onPlayAgain,
   onReset
 }: ActiveMatchProps) {
   const handleMatchEnd = useCallback(
@@ -122,7 +134,9 @@ function ActiveMatch({
     aiDifficulty: config.difficulty,
     mode: config.mode,
     onMatchEnd: handleMatchEnd,
+    initialRoomSnapshot: config.initialRoomSnapshot,
     playerName: config.playerName,
+    playerSide: config.playerSide,
     roomCode: config.roomCode
   });
   const difficulty = AI_DIFFICULTIES.find(
@@ -155,7 +169,12 @@ function ActiveMatch({
           captureDestinationKeys={game.captureDestinationKeys}
           captureRequired={game.captureRequired}
           captureSourceKeys={game.captureSourceKeys}
-          disabled={game.isAiTurn || Boolean(game.matchStatus)}
+          disabled={
+            game.isAiTurn ||
+            game.isRemoteWaiting ||
+            game.isRemoteOpponentTurn ||
+            Boolean(game.matchStatus)
+          }
           forcedFrom={game.forcedFrom}
           legalDestinationKeys={game.legalDestinationKeys}
           selected={game.selected}
@@ -169,15 +188,21 @@ function ActiveMatch({
             logs={game.logs}
             matchStatus={game.matchStatus}
             nodeCounts={game.nodeCounts}
+            remoteConnectionStatus={game.remoteConnectionStatus}
+            remoteError={game.remoteError}
+            remoteOpponentConnected={game.remoteOpponentConnected}
+            remoteWaiting={game.isRemoteWaiting}
             selectedSquare={game.selectedSquare}
-          />
-          <AICoachPanel
-            matchStatus={game.matchStatus}
-            moveHistory={game.moveHistory}
           />
           <LeaderboardPanel rows={leaderboardRows} />
         </div>
       </div>
+
+      <AICoachPanel
+        matchStatus={game.matchStatus}
+        moveHistory={game.moveHistory}
+        onPlayAgain={onPlayAgain}
+      />
     </>
   );
 }

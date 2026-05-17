@@ -3,6 +3,7 @@
 import { Activity, Cpu, ShieldAlert, Terminal } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { NodeSide } from "@/lib/checkers";
+import type { RemoteConnectionStatus } from "@/lib/multiplayer";
 import type { MatchStatus } from "./useCheckers";
 
 type TerminalPanelProps = {
@@ -11,6 +12,10 @@ type TerminalPanelProps = {
   logs: string[];
   matchStatus: MatchStatus | null;
   nodeCounts: Record<NodeSide, number>;
+  remoteConnectionStatus?: RemoteConnectionStatus;
+  remoteError?: string | null;
+  remoteOpponentConnected?: boolean;
+  remoteWaiting?: boolean;
   selectedSquare: string | null;
 };
 
@@ -20,6 +25,10 @@ export function TerminalPanel({
   logs,
   matchStatus,
   nodeCounts,
+  remoteConnectionStatus,
+  remoteError,
+  remoteOpponentConnected,
+  remoteWaiting,
   selectedSquare
 }: TerminalPanelProps) {
   return (
@@ -81,6 +90,51 @@ export function TerminalPanel({
               <span className="relative">
                 [SYSTEM]: Scanning netspaces for optimal vectors...
               </span>
+            </motion.div>
+          )}
+          {remoteWaiting && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="relative overflow-hidden border-l border-cyber bg-cyber/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-cyber"
+            >
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-cyber/25 to-transparent"
+                animate={{ x: ["-110%", "220%"] }}
+                transition={{ duration: 1.15, repeat: Infinity, ease: "linear" }}
+              />
+              <span className="relative">[SYSTEM]: Waiting for opponent...</span>
+            </motion.div>
+          )}
+          {!remoteWaiting && remoteOpponentConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="relative overflow-hidden border-l border-matrix bg-matrix/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-matrix"
+            >
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-matrix/20 to-transparent"
+                animate={{ x: ["-110%", "220%"] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+              />
+              <span className="relative">
+                [SYSTEM]: Opponent connected. Realtime channel{" "}
+                {remoteConnectionStatus ?? "idle"}.
+              </span>
+            </motion.div>
+          )}
+          {remoteError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="border-l border-danger bg-danger/10 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-danger"
+            >
+              [REMOTE ERROR]: {remoteError}
             </motion.div>
           )}
         </AnimatePresence>

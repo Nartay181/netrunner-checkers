@@ -22,8 +22,10 @@ import {
   type NodeSide
 } from "@/lib/checkers";
 import {
+  loadRemoteRoom,
   subscribeToRoom,
-  syncRoomSnapshot,
+  updateRemoteRoomState,
+  type RemoteConnectionStatus,
   type RoomSnapshot
 } from "@/lib/multiplayer";
 import type { GameMode } from "./MatchSetup";
@@ -54,28 +56,57 @@ export type MoveRecord = {
 type UseCheckersOptions = {
   aiDifficulty: AiDifficulty;
   mode: GameMode;
+  initialRoomSnapshot?: RoomSnapshot;
   onMatchEnd?: (status: MatchStatus) => void;
   playerName?: string;
+  playerSide?: NodeSide;
   roomCode?: string;
 };
 
 export function useCheckers({
   aiDifficulty,
+  initialRoomSnapshot,
   mode,
   onMatchEnd,
   playerName = "anonymous-runner",
+  playerSide = "runner",
   roomCode
 }: UseCheckersOptions) {
-  const [board, setBoard] = useState<BoardState>(() => createInitialBoard());
+  const [board, setBoard] = useState<BoardState>(
+    () => initialRoomSnapshot?.boardState ?? createInitialBoard()
+  );
   const [selected, setSelected] = useState<Coordinate | null>(null);
   const [forcedFrom, setForcedFrom] = useState<Coordinate | null>(null);
-  const [activeSide, setActiveSide] = useState<NodeSide>("runner");
-  const [logs, setLogs] = useState<string[]>(INITIAL_LOGS);
+  const [activeSide, setActiveSide] = useState<NodeSide>(
+    initialRoomSnapshot?.currentPlayer ?? "runner"
+  );
+  const [logs, setLogs] = useState<string[]>(
+    initialRoomSnapshot?.logs ?? INITIAL_LOGS
+  );
   const [aiThinking, setAiThinking] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchStatus | null>(null);
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
+  const [remotePlayers, setRemotePlayers] = useState(
+    () =>
+      initialRoomSnapshot?.players ??
+      (mode === "remote"
+        ? [
+            {
+              id: `local-${playerSide}`,
+              name: playerName,
+              side: playerSide
+            }
+          ]
+        : [])
+  );
+  const [remoteStatus, setRemoteStatus] = useState<RoomSnapshot["status"]>(
+    initialRoomSnapshot?.status ?? "active"
+  );
+  const [remoteConnectionStatus, setRemoteConnectionStatus] =
+    useState<RemoteConnectionStatus>("idle");
+  const logsRef = useRef(logs);
   const matchEndedRef = useRef(false);
-  const remoteSyncingRef = useRef(false);
 
   const legalMoves = useMemo(
     () => getAllLegalMoves(board, activeSide, forcedFrom),
@@ -134,37 +165,98 @@ export function useCheckers({
     [board]
   );
   const isAiTurn = mode === "ai" && activeSide === AI_SIDE && !matchStatus;
+  const isRemoteWaiting = mode === "remote" && remoteStatus === "waiting";
+  const isRemoteOpponentTurn =
+    mode === "remote" && activeSide !== playerSide && !matchStatus;
+  const remoteOpponentConnected =
+    mode === "remote" &&
+    remotePlayers.some((player) => player.side !== playerSide);
+
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
 
   useEffect(() => {
     if (mode !== "remote" || !roomCode) {
       return;
     }
 
-    return subscribeToRoom(roomCode, (snapshot) => {
-      remoteSyncingRef.current = true;
-      setBoard(snapshot.boardState);
-      setActiveSide(snapshot.currentTurn);
-      setLogs(snapshot.logs);
-      remoteSyncingRef.current = false;
-    });
-  }, [mode, roomCode]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (mode !== "remote" || !roomCode || remoteSyncingRef.current) {
-      return;
+    void loadRemoteRoom(roomCode)
+      .then((snapshot) => {
+        if (!cancelled) {
+          applyRemoteSnapshot(snapshot);
+        }
+      })
+      .catch((caughtError) => {
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Unable to load remote room.";
+
+        if (!cancelled) {
+          setRemoteError(message);
+          pushLog(`[REMOTE ERROR]: ${message}`);
+        }
+      });
+
+    const unsubscribe = subscribeToRoom(
+      roomCode,
+      (snapshot) => {
+        if (!cancelled) {
+          applyRemoteSnapshot(snapshot);
+        }
+      },
+      (message) => {
+        if (!cancelled) {
+          setRemoteError(message);
+          pushLog(`[REMOTE ERROR]: ${message}`);
+        }
+      },
+      (status) => {
+        if (!cancelled) {
+          setRemoteConnectionStatus(status);
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [mode, playerSide, roomCode]);
+
+  function applyRemoteSnapshot(snapshot: RoomSnapshot) {
+    setBoard(snapshot.boardState);
+    setActiveSide(snapshot.currentPlayer);
+    logsRef.current = snapshot.logs;
+    setLogs(snapshot.logs);
+    setRemotePlayers(snapshot.players);
+    setRemoteStatus(snapshot.status);
+    setRemoteError(null);
+
+    if (snapshot.currentPlayer !== playerSide) {
+      setSelected(null);
+      setForcedFrom(null);
     }
 
-    const snapshot: RoomSnapshot = {
-      boardState: board,
-      currentTurn: activeSide,
-      logs,
-      players: { runner: playerName },
-      roomCode,
-      status: matchStatus ? "complete" : "active"
-    };
+    if (snapshot.status === "complete" && !matchEndedRef.current) {
+      const status = getCompletionStatus(
+        snapshot.boardState,
+        snapshot.currentPlayer
+      );
 
-    void syncRoomSnapshot(snapshot);
-  }, [activeSide, board, logs, matchStatus, mode, playerName, roomCode]);
+      if (status) {
+        matchEndedRef.current = true;
+        setAiThinking(false);
+        setSelected(null);
+        setForcedFrom(null);
+        setMatchStatus(status);
+        onMatchEnd?.(status);
+      }
+    }
+  }
 
   useEffect(() => {
     if (matchEndedRef.current) {
@@ -225,7 +317,12 @@ export function useCheckers({
   }, [aiDifficulty, board, isAiTurn, legalMoves]);
 
   function pushLogs(messages: string[]) {
-    setLogs((current) => [...messages, ...current].slice(0, 16));
+    setLogs((current) => {
+      const nextLogs = prependLogs(messages, current);
+
+      logsRef.current = nextLogs;
+      return nextLogs;
+    });
   }
 
   function pushLog(message: string) {
@@ -235,6 +332,16 @@ export function useCheckers({
   function handleCellClick(row: number, col: number) {
     if (matchStatus) {
       pushLog("[SYSTEM]: Match complete. Reinitialize a new breach.");
+      return;
+    }
+
+    if (isRemoteWaiting) {
+      pushLog("[SYSTEM]: Waiting for opponent before breach can begin.");
+      return;
+    }
+
+    if (isRemoteOpponentTurn) {
+      pushLog("[SYSTEM]: Waiting for remote opponent vector.");
       return;
     }
 
@@ -316,6 +423,23 @@ export function useCheckers({
         ? getCaptureMovesForPiece(result.board, move.to)
         : [];
     const chainContinued = continuingCaptures.length > 0;
+    const nextActiveSide = chainContinued ? activeSide : getOpponent(activeSide);
+    const chainLogs = chainContinued
+      ? [
+          ...actionLogs,
+          `[TRACE]: Multi-jump chain locked at ${getSquareName(move.to)}.`
+        ]
+      : actionLogs;
+    const completionStatus = chainContinued
+      ? null
+      : getCompletionStatus(result.board, nextActiveSide);
+    const completionLogs = completionStatus
+      ? [
+          `[SYSTEM]: MATCH COMPLETE | WINNER: ${completionStatus.winner.toUpperCase()}`,
+          `[TRACE]: ${completionStatus.reason}.`
+        ]
+      : [];
+    const nextLogs = prependLogs([...completionLogs, ...chainLogs], logsRef.current);
 
     setBoard(result.board);
     setMoveHistory((current) => [
@@ -336,17 +460,32 @@ export function useCheckers({
     if (chainContinued) {
       setSelected(move.to);
       setForcedFrom(move.to);
-      pushLogs([
-        ...actionLogs,
-        `[TRACE]: Multi-jump chain locked at ${getSquareName(move.to)}.`
-      ]);
-      return;
+    } else {
+      setSelected(null);
+      setForcedFrom(null);
+      setActiveSide(nextActiveSide);
     }
 
-    setSelected(null);
-    setForcedFrom(null);
-    setActiveSide(getOpponent(activeSide));
-    pushLogs(actionLogs);
+    logsRef.current = nextLogs;
+    setLogs(nextLogs);
+
+    if (completionStatus) {
+      matchEndedRef.current = true;
+      setAiThinking(false);
+      setMatchStatus(completionStatus);
+      onMatchEnd?.(completionStatus);
+    }
+
+    if (mode === "remote" && roomCode) {
+      void pushRemoteSnapshot({
+        boardState: result.board,
+        currentPlayer: nextActiveSide,
+        logs: nextLogs,
+        players: remotePlayers,
+        roomCode,
+        status: completionStatus ? "complete" : "active"
+      });
+    }
   }
 
   return {
@@ -359,15 +498,40 @@ export function useCheckers({
     handleCellClick,
     isAiTurn,
     aiThinking,
+    isRemoteOpponentTurn,
+    isRemoteWaiting,
     legalDestinationKeys,
     logs,
     matchStatus,
     mode,
     moveHistory,
     nodeCounts,
+    remoteConnectionStatus,
+    remoteError,
+    remoteOpponentConnected,
+    remotePlayers,
+    remoteStatus,
     selected,
     selectedSquare
   };
+
+  async function pushRemoteSnapshot(snapshot: RoomSnapshot) {
+    try {
+      const syncedSnapshot = await updateRemoteRoomState(snapshot);
+
+      setRemoteError(null);
+      setRemotePlayers(syncedSnapshot.players);
+      setRemoteStatus(syncedSnapshot.status);
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to sync remote move.";
+
+      setRemoteError(message);
+      pushLog(`[REMOTE ERROR]: ${message}`);
+    }
+  }
 }
 
 function createMoveLogs(move: LegalMove, promoted: boolean) {
@@ -386,4 +550,42 @@ function createMoveLogs(move: LegalMove, promoted: boolean) {
   }
 
   return logs;
+}
+
+function prependLogs(messages: string[], currentLogs: string[]) {
+  return [...messages, ...currentLogs].slice(0, 16);
+}
+
+function getCompletionStatus(
+  board: BoardState,
+  activeSide: NodeSide
+): MatchStatus | null {
+  const counts = countNodes(board);
+
+  if (counts[activeSide] > 0 && getAllLegalMoves(board, activeSide).length > 0) {
+    return null;
+  }
+
+  const winner = getOpponent(activeSide);
+
+  return {
+    winner,
+    reason:
+      counts[activeSide] === 0
+        ? `${activeSide.toUpperCase()} nodes depleted`
+        : `${activeSide.toUpperCase()} has no legal vectors`
+  };
+}
+
+function countNodes(board: BoardState) {
+  return board.flat().reduce<Record<NodeSide, number>>(
+    (counts, piece) => {
+      if (piece) {
+        counts[piece.side] += 1;
+      }
+
+      return counts;
+    },
+    { runner: 0, daemon: 0 }
+  );
 }

@@ -6,6 +6,8 @@ import {
   AI_DIFFICULTIES,
   type AiDifficulty
 } from "@/lib/ai";
+import type { NodeSide } from "@/lib/checkers";
+import type { RoomSnapshot } from "@/lib/multiplayer";
 import { LeaderboardPanel, type LeaderboardRow } from "./LeaderboardPanel";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 
@@ -14,13 +16,20 @@ export type GameMode = "pvp" | "ai" | "remote";
 export type MatchConfig = {
   difficulty: AiDifficulty;
   mode: GameMode;
+  initialRoomSnapshot?: RoomSnapshot;
   playerName?: string;
+  playerSide?: NodeSide;
   roomCode?: string;
 };
 
 type MatchSetupProps = {
   leaderboardRows: LeaderboardRow[];
-  onStartRemote: (roomCode: string, playerName: string) => void;
+  onStartRemote: (
+    roomCode: string,
+    playerName: string,
+    playerSide: NodeSide,
+    snapshot: RoomSnapshot
+  ) => void;
   onStart: (config: MatchConfig) => void;
 };
 
