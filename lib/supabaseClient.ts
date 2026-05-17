@@ -1,5 +1,5 @@
 import type { BoardState, NodeSide } from "./checkers";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/lib/supabase";
 import type { Database, Json } from "@/utils/supabase/types";
 
 export type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
@@ -14,5 +14,5 @@ export type RemotePlayer = {
 };
 
 export function getSupabaseClient() {
-  return createClient();
+  return supabase;
 }

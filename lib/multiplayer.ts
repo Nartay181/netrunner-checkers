@@ -1,4 +1,5 @@
 import { createInitialBoard, type BoardState, type NodeSide } from "./checkers";
+import { createMissingSupabaseEnvError } from "@/utils/supabase/env";
 import {
   getSupabaseClient,
   type GameInsert,
@@ -78,8 +79,8 @@ export function createInitialRoomSnapshot(
 export async function createRemoteRoom(
   playerName: string
 ): Promise<RemoteRoomResult> {
-  const client = getSupabaseClient();
-  const userId = await getAuthenticatedUserId();
+  const client = getRequiredSupabaseClient();
+  const userId = await getAuthenticatedUserId(client);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const roomCode = generateRoomCode();
@@ -123,8 +124,8 @@ export async function joinRemoteRoom(
   roomCode: string,
   playerName: string
 ): Promise<RemoteRoomResult> {
-  const client = getSupabaseClient();
-  const userId = await getAuthenticatedUserId();
+  const client = getRequiredSupabaseClient();
+  const userId = await getAuthenticatedUserId(client);
 
   const normalizedRoomCode = normalizeRoomCode(roomCode);
   const { data: existing, error: loadError } = await client
@@ -219,11 +220,7 @@ export async function joinRemoteRoom(
 }
 
 export async function loadRemoteRoom(roomCode: string) {
-  const client = getSupabaseClient();
-
-  if (!client) {
-    throw new Error("Supabase client offline. Unable to load remote room.");
-  }
+  const client = getRequiredSupabaseClient();
 
   const normalizedRoomCode = normalizeRoomCode(roomCode);
   const { data, error } = await client
@@ -240,11 +237,7 @@ export async function loadRemoteRoom(roomCode: string) {
 }
 
 export async function updateRemoteRoomState(snapshot: RoomSnapshot) {
-  const client = getSupabaseClient();
-
-  if (!client) {
-    throw new Error("Supabase client offline. Move kept locally only.");
-  }
+  const client = getRequiredSupabaseClient();
 
   const { data, error } = await client
     .from("games")
@@ -267,6 +260,12 @@ export function subscribeToRoom(
   onStatus?: (status: RemoteConnectionStatus) => void
 ) {
   const client = getSupabaseClient();
+
+  if (!client) {
+    onStatus?.("error");
+    onError?.("Supabase env missing. Realtime channel unavailable.");
+    return () => undefined;
+  }
 
   onStatus?.("connecting");
 
@@ -391,8 +390,19 @@ function makePlayerId(side: NodeSide) {
   return `${side}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
-async function getAuthenticatedUserId() {
+function getRequiredSupabaseClient() {
   const client = getSupabaseClient();
+
+  if (!client) {
+    throw createMissingSupabaseEnvError();
+  }
+
+  return client;
+}
+
+async function getAuthenticatedUserId(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>
+) {
   const { data, error } = await client.auth.getUser();
 
   if (error || !data.user) {

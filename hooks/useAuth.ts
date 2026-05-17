@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
+import { getMissingSupabaseEnvMessage } from "@/utils/supabase/env";
 import type { Database } from "@/utils/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -21,7 +22,7 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
 
   const loadProfile = useCallback(
     async (nextUser: User | null) => {
-      if (!nextUser) {
+      if (!supabase || !nextUser) {
         setProfile(null);
         return;
       }
@@ -44,6 +45,15 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    if (!supabase) {
+      setError(getMissingSupabaseEnvMessage());
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
     const { data, error: sessionError } = await supabase.auth.getSession();
 
@@ -75,6 +85,12 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
     setLoading(true);
     setError(null);
 
+    if (!supabase) {
+      setError(getMissingSupabaseEnvMessage());
+      setLoading(false);
+      return;
+    }
+
     const { data, error: signInError } = await supabase.auth.signInAnonymously();
 
     if (signInError) {
@@ -93,6 +109,14 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
     setLoading(true);
     setError(null);
 
+    if (!supabase) {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
     const { error: signOutError } = await supabase.auth.signOut();
 
     if (signOutError) {
@@ -107,6 +131,10 @@ export function useAuth({ autoAnonymous = false }: UseAuthOptions = {}) {
 
   useEffect(() => {
     void refresh();
+
+    if (!supabase) {
+      return undefined;
+    }
 
     const {
       data: { subscription }
