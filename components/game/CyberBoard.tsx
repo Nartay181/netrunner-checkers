@@ -39,9 +39,9 @@ export function CyberBoard({
   onCellClick
 }: CyberBoardProps) {
   return (
-    <section className="w-full min-w-0">
+    <section className="w-full min-w-0 overflow-hidden">
       <LayoutGroup>
-        <div className="board-frame circuit-board relative mx-auto grid aspect-square grid-cols-8 overflow-hidden rounded-lg border border-matrix/45 p-2 shadow-[0_0_60px_rgba(0,255,65,0.16),inset_0_0_38px_rgba(0,243,255,0.08)]">
+        <div className="board-frame circuit-board relative mx-auto grid aspect-square grid-cols-8 overflow-hidden rounded-lg border border-matrix/45 p-1.5 shadow-[0_0_42px_rgba(0,255,65,0.14),inset_0_0_30px_rgba(0,243,255,0.08)] sm:p-2 sm:shadow-[0_0_60px_rgba(0,255,65,0.16),inset_0_0_38px_rgba(0,243,255,0.08)]">
           <div className="pointer-events-none absolute inset-0 z-10 border border-cyber/25" />
           <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-full w-px bg-cyber/25 shadow-cyber-soft" />
           <div className="pointer-events-none absolute left-0 top-1/2 z-10 h-px w-full bg-matrix/25 shadow-matrix-soft" />
@@ -80,7 +80,7 @@ export function CyberBoard({
                       : undefined
                   }
                   className={[
-                    "group relative isolate flex aspect-square items-center justify-center overflow-hidden border text-[10px] uppercase transition-colors",
+                    "group relative isolate flex aspect-square items-center justify-center overflow-hidden border text-[8px] uppercase transition-colors sm:text-[10px]",
                     playable
                       ? "border-matrix/18 bg-black/50"
                       : "border-cyber/10 bg-white/[0.025]",
@@ -108,7 +108,7 @@ export function CyberBoard({
                       "bg-[linear-gradient(135deg,transparent_42%,rgba(0,255,65,0.16)_43%,rgba(0,255,65,0.16)_45%,transparent_46%)]"
                     ].join(" ")}
                   />
-                  <span className="pointer-events-none absolute left-1 top-1 text-[9px] text-cyber/30">
+                  <span className="pointer-events-none absolute left-0.5 top-0.5 text-[7px] text-cyber/25 sm:left-1 sm:top-1 sm:text-[9px] sm:text-cyber/30">
                     {getSquareName({ row, col })}
                   </span>
                   {canMoveTarget && (

@@ -34,11 +34,11 @@ export function TerminalPanel({
   selectedSquare
 }: TerminalPanelProps) {
   return (
-    <aside className="cyber-panel flex min-h-[420px] w-full flex-col rounded-lg lg:max-w-sm">
-      <div className="flex items-center justify-between border-b border-cyber/20 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-bold uppercase text-cyber">
+    <aside className="cyber-panel flex min-h-[320px] w-full min-w-0 flex-col rounded-lg sm:min-h-[380px] lg:min-h-[420px] lg:max-w-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-cyber/20 px-3 py-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-bold uppercase text-cyber sm:text-sm">
           <Terminal className="h-4 w-4" aria-hidden="true" />
-          <span>Terminal Output</span>
+          <span className="truncate">Terminal Output</span>
         </div>
         <div className="flex items-center gap-2">
           {authUsername && (
@@ -50,15 +50,15 @@ export function TerminalPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 border-b border-cyber/20 text-center text-xs uppercase">
-        <div className="border-r border-cyber/15 px-3 py-3">
+      <div className="grid grid-cols-3 border-b border-cyber/20 text-center text-[10px] uppercase sm:text-xs">
+        <div className="border-r border-cyber/15 px-2 py-2.5 sm:px-3 sm:py-3">
           <div className="mb-1 flex items-center justify-center gap-1 text-matrix">
             <Cpu className="h-3.5 w-3.5" aria-hidden="true" />
             Runner
           </div>
-          <p className="text-lg font-black text-white">{nodeCounts.runner}</p>
+          <p className="text-base font-black text-white sm:text-lg">{nodeCounts.runner}</p>
         </div>
-        <div className="border-r border-cyber/15 px-3 py-3">
+        <div className="border-r border-cyber/15 px-2 py-2.5 sm:px-3 sm:py-3">
           <div
             className={[
               "mb-1 flex items-center justify-center gap-1",
@@ -68,27 +68,27 @@ export function TerminalPanel({
             <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
             {botEnabled ? "Kernel" : "Daemon"}
           </div>
-          <p className="text-lg font-black text-white">{nodeCounts.daemon}</p>
+          <p className="text-base font-black text-white sm:text-lg">{nodeCounts.daemon}</p>
         </div>
-        <div className="px-3 py-3">
+        <div className="px-2 py-2.5 sm:px-3 sm:py-3">
           <div className="mb-1 flex items-center justify-center gap-1 text-danger">
             <Activity className="h-3.5 w-3.5" aria-hidden="true" />
             {matchStatus ? "Winner" : "Trace"}
           </div>
-          <p className="truncate text-lg font-black text-white">
+          <p className="truncate text-base font-black text-white sm:text-lg">
             {matchStatus?.winner.toUpperCase() ?? selectedSquare ?? "--"}
           </p>
         </div>
       </div>
 
-      <div className="terminal-scroll flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <div className="terminal-scroll flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
         <AnimatePresence>
           {aiThinking && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="relative overflow-hidden border-l border-danger bg-danger/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-danger"
+              className="relative overflow-hidden break-words border-l border-danger bg-danger/8 px-3 py-2 text-[11px] font-bold uppercase leading-relaxed text-danger sm:text-xs"
             >
               <motion.span
                 aria-hidden="true"
@@ -106,7 +106,7 @@ export function TerminalPanel({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="relative overflow-hidden border-l border-cyber bg-cyber/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-cyber"
+              className="relative overflow-hidden break-words border-l border-cyber bg-cyber/8 px-3 py-2 text-[11px] font-bold uppercase leading-relaxed text-cyber sm:text-xs"
             >
               <motion.span
                 aria-hidden="true"
@@ -122,7 +122,7 @@ export function TerminalPanel({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="relative overflow-hidden border-l border-matrix bg-matrix/8 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-matrix"
+              className="relative overflow-hidden break-words border-l border-matrix bg-matrix/8 px-3 py-2 text-[11px] font-bold uppercase leading-relaxed text-matrix sm:text-xs"
             >
               <motion.span
                 aria-hidden="true"
@@ -141,7 +141,7 @@ export function TerminalPanel({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="border-l border-danger bg-danger/10 px-3 py-2 text-xs font-bold uppercase leading-relaxed text-danger"
+              className="break-words border-l border-danger bg-danger/10 px-3 py-2 text-[11px] font-bold uppercase leading-relaxed text-danger sm:text-xs"
             >
               [REMOTE ERROR]: {remoteError}
             </motion.div>
@@ -151,7 +151,7 @@ export function TerminalPanel({
           <p
             key={`${log}-${index}`}
             className={[
-              "border-l px-3 py-2 text-xs leading-relaxed",
+              "break-words border-l px-3 py-2 text-[11px] leading-relaxed sm:text-xs",
               index === 0
                 ? "border-matrix bg-matrix/8 text-matrix"
                 : "border-cyber/25 bg-black/30 text-cyber/80"

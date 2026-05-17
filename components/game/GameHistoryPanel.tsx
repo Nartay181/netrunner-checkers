@@ -63,18 +63,18 @@ export function GameHistoryPanel({
   }, [refreshKey, supabase, userId]);
 
   return (
-    <section className="cyber-panel overflow-hidden rounded-lg border border-cyber/20 bg-black/55">
-      <div className="flex items-center justify-between border-b border-cyber/20 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-black uppercase text-cyber">
+    <section className="cyber-panel min-w-0 overflow-hidden rounded-lg border border-cyber/20 bg-black/55">
+      <div className="flex items-center justify-between gap-3 border-b border-cyber/20 px-3 py-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-black uppercase text-cyber sm:text-sm">
           <ScrollText className="h-4 w-4" aria-hidden="true" />
-          <span>Game History</span>
+          <span className="truncate">Game History</span>
         </div>
         <span className="text-[10px] uppercase tracking-[0.22em] text-matrix/70">
           Archive
         </span>
       </div>
 
-      <div className="p-3">
+      <div className="p-2.5 sm:p-3">
         {loading ? (
           <HistoryStatus
             loading
@@ -88,8 +88,8 @@ export function GameHistoryPanel({
           <HistoryStatus message="[SYSTEM]: No completed matches archived yet." />
         ) : (
           <div className="grid gap-2">
-            <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] gap-2 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-cyber/55">
-              <span>Date</span>
+            <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_3.25rem] gap-2 px-2 text-[9px] font-black uppercase tracking-[0.12em] text-cyber/55 sm:grid-cols-[1.1fr_minmax(0,1fr)_0.8fr_0.7fr] sm:px-3 sm:text-[10px] sm:tracking-[0.16em]">
+              <span className="hidden sm:block">Date</span>
               <span>Opponent</span>
               <span>Result</span>
               <span className="text-right">Elo</span>
@@ -122,9 +122,9 @@ function HistoryRow({ row, userId }: HistoryRowProps) {
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr] items-center gap-2 rounded-md border border-cyber/14 bg-zinc-950/80 px-3 py-3 text-xs text-cyber/85 transition hover:border-cyber/35 hover:bg-zinc-900/90"
+      className="grid grid-cols-[minmax(0,1fr)_4.5rem_3.25rem] items-center gap-2 rounded-md border border-cyber/14 bg-zinc-950/80 px-2.5 py-2.5 text-[11px] text-cyber/85 transition hover:border-cyber/35 hover:bg-zinc-900/90 sm:grid-cols-[1.1fr_minmax(0,1fr)_0.8fr_0.7fr] sm:px-3 sm:py-3 sm:text-xs"
     >
-      <span className="flex min-w-0 items-center gap-2 text-white/80">
+      <span className="hidden min-w-0 items-center gap-2 text-white/80 sm:flex">
         <Clock3 className="h-3.5 w-3.5 shrink-0 text-cyber" aria-hidden="true" />
         <span className="truncate">{formatHistoryDate(row.created_at)}</span>
       </span>
@@ -133,7 +133,7 @@ function HistoryRow({ row, userId }: HistoryRowProps) {
       </span>
       <span
         className={[
-          "w-fit rounded border px-2 py-1 text-[10px] font-black uppercase",
+          "w-fit rounded border px-1.5 py-1 text-[9px] font-black uppercase sm:px-2 sm:text-[10px]",
           result === "WIN"
             ? "border-matrix/45 bg-matrix/10 text-matrix"
             : result === "LOSS"
@@ -141,7 +141,8 @@ function HistoryRow({ row, userId }: HistoryRowProps) {
               : "border-cyber/35 bg-cyber/8 text-cyber"
         ].join(" ")}
       >
-        {`RESULT: ${result}`}
+        <span className="hidden sm:inline">RESULT: </span>
+        {result}
       </span>
       <span
         className={[
@@ -170,14 +171,14 @@ function HistoryStatus({ danger, loading, message }: HistoryStatusProps) {
   return (
     <div
       className={[
-        "flex items-center gap-2 rounded-md border px-3 py-4 text-xs font-bold uppercase",
+        "flex items-center gap-2 rounded-md border px-3 py-3 text-[11px] font-bold uppercase leading-relaxed sm:py-4 sm:text-xs",
         danger
           ? "border-danger/40 bg-danger/10 text-danger"
           : "border-cyber/25 bg-cyber/8 text-cyber"
       ].join(" ")}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-      <span>{message}</span>
+      <span className="min-w-0 break-words">{message}</span>
     </div>
   );
 }

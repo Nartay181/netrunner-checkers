@@ -17,6 +17,7 @@ import { GameHistoryPanel } from "./GameHistoryPanel";
 import { HeaderBar } from "./HeaderBar";
 import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MatchSetup, type MatchConfig } from "./MatchSetup";
+import { PlayerProfilePanel } from "./PlayerProfilePanel";
 import { ProModal } from "./ProModal";
 import { TerminalPanel } from "./TerminalPanel";
 import { useCheckers, type MatchStatus } from "./useCheckers";
@@ -91,7 +92,7 @@ export function NetrunnerCheckers() {
   );
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-void text-slate-100">
+    <main className="relative min-h-screen overflow-x-hidden bg-void text-slate-100">
       <div className="noise-field" aria-hidden="true" />
       <div className="scanline" aria-hidden="true" />
 
@@ -105,6 +106,10 @@ export function NetrunnerCheckers() {
             turnLabel="SETUP"
           />
           <MatchSetup
+            authenticated={Boolean(auth.user)}
+            authEmail={auth.user?.email}
+            authLoading={auth.loading}
+            authProfile={auth.profile}
             authUserId={currentUserId}
             authUsername={auth.username}
             historyRefreshKey={historyRefreshKey}
@@ -117,6 +122,10 @@ export function NetrunnerCheckers() {
         <ActiveMatch
           key={matchKey}
           config={matchConfig}
+          authenticated={Boolean(auth.user)}
+          authEmail={auth.user?.email}
+          authLoading={auth.loading}
+          authProfile={auth.profile}
           authUserId={currentUserId}
           authUsername={auth.username}
           historyRefreshKey={historyRefreshKey}
@@ -140,6 +149,10 @@ export function NetrunnerCheckers() {
 }
 
 type ActiveMatchProps = {
+  authenticated: boolean;
+  authEmail?: string | null;
+  authLoading: boolean;
+  authProfile: ReturnType<typeof useAuth>["profile"];
   authUserId?: string;
   authUsername: string;
   config: MatchConfig;
@@ -155,6 +168,10 @@ type ActiveMatchProps = {
 };
 
 function ActiveMatch({
+  authenticated,
+  authEmail,
+  authLoading,
+  authProfile,
   authUserId,
   authUsername,
   config,
@@ -247,47 +264,63 @@ function ActiveMatch({
         }
       />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:px-8 lg:py-8">
-        <CyberBoard
-          botSide={config.mode === "ai" ? AI_SIDE : null}
-          board={game.board}
-          captureDestinationKeys={game.captureDestinationKeys}
-          captureRequired={game.captureRequired}
-          captureSourceKeys={game.captureSourceKeys}
-          disabled={
-            game.isAiTurn ||
-            game.isRemoteWaiting ||
-            game.isRemoteOpponentTurn ||
-            Boolean(game.matchStatus)
-          }
-          forcedFrom={game.forcedFrom}
-          legalDestinationKeys={game.legalDestinationKeys}
-          selected={game.selected}
-          onCellClick={game.handleCellClick}
-        />
-
-        <div className="grid gap-5 lg:max-w-sm">
-          <TerminalPanel
-            aiThinking={game.aiThinking}
-            authUsername={authUsername}
-            botEnabled={config.mode === "ai"}
-            logs={game.logs}
-            matchStatus={game.matchStatus}
-            nodeCounts={game.nodeCounts}
-            remoteConnectionStatus={game.remoteConnectionStatus}
-            remoteError={game.remoteError}
-            remoteOpponentConnected={game.remoteOpponentConnected}
-            remoteWaiting={game.isRemoteWaiting}
-            selectedSquare={game.selectedSquare}
-          />
-          <LeaderboardPanel
-            currentUserId={authUserId}
-            refreshKey={leaderboardRefreshKey}
+      <div className="relative z-10 mx-auto grid w-full max-w-[98rem] items-start gap-4 overflow-x-hidden px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)_minmax(18rem,22rem)] xl:px-8 xl:py-8">
+        <div className="order-2 grid min-w-0 gap-4 sm:gap-5 xl:order-1">
+          <PlayerProfilePanel
+            authenticated={authenticated}
+            email={authEmail}
+            loading={authLoading}
+            profile={authProfile}
+            username={authUsername}
           />
           <GameHistoryPanel
             refreshKey={historyRefreshKey}
             userId={authUserId}
           />
+        </div>
+
+        <div className="order-1 min-w-0 xl:order-2">
+          <CyberBoard
+            botSide={config.mode === "ai" ? AI_SIDE : null}
+            board={game.board}
+            captureDestinationKeys={game.captureDestinationKeys}
+            captureRequired={game.captureRequired}
+            captureSourceKeys={game.captureSourceKeys}
+            disabled={
+              game.isAiTurn ||
+              game.isRemoteWaiting ||
+              game.isRemoteOpponentTurn ||
+              Boolean(game.matchStatus)
+            }
+            forcedFrom={game.forcedFrom}
+            legalDestinationKeys={game.legalDestinationKeys}
+            selected={game.selected}
+            onCellClick={game.handleCellClick}
+          />
+        </div>
+
+        <div className="order-3 grid min-w-0 gap-4 sm:gap-5">
+          <div className="order-2 xl:order-1">
+            <TerminalPanel
+              aiThinking={game.aiThinking}
+              authUsername={authUsername}
+              botEnabled={config.mode === "ai"}
+              logs={game.logs}
+              matchStatus={game.matchStatus}
+              nodeCounts={game.nodeCounts}
+              remoteConnectionStatus={game.remoteConnectionStatus}
+              remoteError={game.remoteError}
+              remoteOpponentConnected={game.remoteOpponentConnected}
+              remoteWaiting={game.isRemoteWaiting}
+              selectedSquare={game.selectedSquare}
+            />
+          </div>
+          <div className="order-1 xl:order-2">
+            <LeaderboardPanel
+              currentUserId={authUserId}
+              refreshKey={leaderboardRefreshKey}
+            />
+          </div>
         </div>
       </div>
 

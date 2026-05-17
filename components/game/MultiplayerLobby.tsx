@@ -145,11 +145,11 @@ export function MultiplayerLobby({
   }
 
   return (
-    <section className="rounded-lg border border-cyber/25 bg-black/35 p-4">
+    <section className="min-w-0 rounded-lg border border-cyber/25 bg-black/35 p-3 sm:p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm font-black uppercase text-cyber">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-black uppercase text-cyber sm:text-sm">
           <RadioTower className="h-4 w-4" aria-hidden="true" />
-          <span>Remote Shell</span>
+          <span className="truncate">Remote Shell</span>
         </div>
         <span className="rounded-md border border-matrix/30 px-2 py-1 text-[10px] uppercase text-matrix">
           Supabase live
@@ -162,7 +162,7 @@ export function MultiplayerLobby({
           <input
             value={playerName}
             readOnly
-            className="rounded-md border border-matrix/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none shadow-matrix-soft"
+            className="min-w-0 rounded-md border border-matrix/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none shadow-matrix-soft"
           />
         </label>
 
@@ -170,19 +170,19 @@ export function MultiplayerLobby({
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-l border-danger bg-danger/10 px-3 py-2 text-xs uppercase leading-relaxed text-danger"
+            className="break-words border-l border-danger bg-danger/10 px-3 py-2 text-xs uppercase leading-relaxed text-danger"
           >
             [ERROR]: {error}
           </motion.div>
         )}
 
         {!roomCode && (
-          <div className="grid grid-cols-2 gap-2 rounded-md border border-cyber/15 bg-black/30 p-1">
+          <div className="grid gap-2 rounded-md border border-cyber/15 bg-black/30 p-1 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => setActivePanel("create")}
               className={[
-                "rounded px-3 py-2 text-xs font-black uppercase transition",
+                "rounded px-2 py-2 text-[10px] font-black uppercase transition sm:px-3 sm:text-xs",
                 activePanel === "create"
                   ? "bg-cyber/12 text-cyber shadow-cyber-soft"
                   : "text-cyber/55 hover:text-cyber"
@@ -194,7 +194,7 @@ export function MultiplayerLobby({
               type="button"
               onClick={() => setActivePanel("join")}
               className={[
-                "rounded px-3 py-2 text-xs font-black uppercase transition",
+                "rounded px-2 py-2 text-[10px] font-black uppercase transition sm:px-3 sm:text-xs",
                 activePanel === "join"
                   ? "bg-matrix/12 text-matrix shadow-matrix-soft"
                   : "text-matrix/55 hover:text-matrix"
@@ -214,7 +214,7 @@ export function MultiplayerLobby({
                 whileTap={{ scale: 0.98 }}
                 onClick={createRoom}
                 disabled={Boolean(pendingAction)}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyber/45 bg-cyber/10 px-4 py-2 text-xs font-bold uppercase text-cyber shadow-cyber-soft disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyber/45 bg-cyber/10 px-3 py-2 text-[10px] font-bold uppercase text-cyber shadow-cyber-soft disabled:cursor-wait disabled:opacity-60 sm:px-4 sm:text-xs"
               >
                 {pendingAction === "create" ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -233,7 +233,7 @@ export function MultiplayerLobby({
                     value={joinCode}
                     onChange={(event) => setJoinCode(event.target.value)}
                     placeholder="ROOM-KZA7F3"
-                    className="rounded-md border border-matrix/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none transition placeholder:text-matrix/35 focus:border-matrix/70"
+                    className="min-w-0 rounded-md border border-matrix/25 bg-black/60 px-3 py-2 text-sm uppercase text-white outline-none transition placeholder:text-matrix/35 focus:border-matrix/70"
                   />
                 </label>
                 <motion.button
@@ -245,7 +245,7 @@ export function MultiplayerLobby({
                     Boolean(pendingAction) ||
                     joinCode.trim().length === 0
                   }
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-matrix/45 bg-matrix/10 px-4 py-2 text-xs font-bold uppercase text-matrix shadow-matrix-soft disabled:cursor-wait disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-matrix/45 bg-matrix/10 px-3 py-2 text-[10px] font-bold uppercase text-matrix shadow-matrix-soft disabled:cursor-wait disabled:opacity-60 sm:px-4 sm:text-xs"
                 >
                   {pendingAction === "join" ? (
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -292,13 +292,13 @@ export function MultiplayerLobby({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               <motion.button
                 type="button"
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={copyCode}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyber/35 bg-black/45 px-3 py-2 text-xs font-bold uppercase text-cyber"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-cyber/35 bg-black/45 px-3 py-2 text-[10px] font-bold uppercase text-cyber sm:text-xs"
               >
                 <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                 {copied ? "Copied" : "Copy Link"}
@@ -318,7 +318,7 @@ export function MultiplayerLobby({
                     );
                   }
                 }}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-matrix/45 bg-matrix/10 px-3 py-2 text-xs font-bold uppercase text-matrix shadow-matrix-soft"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-matrix/45 bg-matrix/10 px-3 py-2 text-[10px] font-bold uppercase text-matrix shadow-matrix-soft sm:text-xs"
               >
                 <Terminal className="h-3.5 w-3.5" aria-hidden="true" />
                 Enter as Runner

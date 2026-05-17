@@ -9,7 +9,10 @@ import type { Database } from "@/utils/supabase/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type LeaderboardRow = Pick<ProfileRow, "city" | "elo" | "id" | "username">;
+export type LeaderboardRow = Pick<
+  ProfileRow,
+  "city" | "elo" | "id" | "username"
+>;
 
 type NetworkFilter = "all" | "almaty";
 
@@ -90,20 +93,20 @@ export function LeaderboardPanel({
   }, [activeFilter, rows]);
 
   return (
-    <section className="cyber-panel overflow-hidden rounded-lg border border-cyber/20 bg-black/55">
-      <div className="border-b border-cyber/20 px-4 py-4">
+    <section className="cyber-panel min-w-0 overflow-hidden rounded-lg border border-cyber/20 bg-black/55">
+      <div className="border-b border-cyber/20 px-3 py-3 sm:px-4 sm:py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-black uppercase text-matrix">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2 text-xs font-black uppercase text-matrix sm:text-sm">
               <Trophy className="h-4 w-4" aria-hidden="true" />
-              <span>Netrunner Leaderboard</span>
+              <span className="truncate">Netrunner Leaderboard</span>
             </div>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-cyber/60">
+            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.16em] text-cyber/60 sm:tracking-[0.2em]">
               Live Supabase Rankings
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 rounded-md border border-cyber/20 bg-black/45 p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-md border border-cyber/20 bg-black/45 p-1 sm:w-auto">
             {FILTERS.map((filter) => {
               const active = activeFilter === filter.id;
 
@@ -113,7 +116,7 @@ export function LeaderboardPanel({
                   type="button"
                   onClick={() => setActiveFilter(filter.id)}
                   className={[
-                    "rounded px-2.5 py-2 text-[10px] font-black uppercase transition",
+                    "rounded px-2 py-2 text-[9px] font-black uppercase transition sm:px-2.5 sm:text-[10px]",
                     active
                       ? "bg-matrix/14 text-matrix shadow-matrix-soft"
                       : "text-cyber/65 hover:bg-cyber/8 hover:text-cyber"
@@ -127,7 +130,7 @@ export function LeaderboardPanel({
         </div>
       </div>
 
-      <div className="p-3">
+      <div className="p-2.5 sm:p-3">
         {loading ? (
           <LeaderboardStatus
             icon={<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
@@ -151,16 +154,23 @@ export function LeaderboardPanel({
             tone="cyber"
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[34rem] border-separate border-spacing-y-2 text-left">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed border-separate border-spacing-y-2 text-left">
               <thead>
                 <tr className="text-[10px] uppercase tracking-[0.18em] text-cyber/65">
-                  <th className="px-3 py-1 font-black">Rank</th>
-                  <th className="px-3 py-1 font-black">Operator (Username)</th>
-                  <th className="px-3 py-1 text-right font-black">
-                    Rating (Elo)
+                  <th className="w-14 px-2 py-1 font-black sm:w-16 sm:px-3">
+                    Rank
                   </th>
-                  <th className="px-3 py-1 font-black">Location</th>
+                  <th className="px-2 py-1 font-black sm:px-3">
+                    Operator
+                    <span className="hidden sm:inline"> (Username)</span>
+                  </th>
+                  <th className="w-20 px-2 py-1 text-right font-black sm:w-24 sm:px-3">
+                    Elo
+                  </th>
+                  <th className="hidden w-28 px-3 py-1 font-black sm:table-cell">
+                    Location
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -211,7 +221,7 @@ function LeaderboardTableRow({
     >
       <td
         className={[
-          "rounded-l-md border-y border-l px-3 py-3",
+          "rounded-l-md border-y border-l px-2 py-2.5 sm:px-3 sm:py-3",
           current
             ? "border-matrix/55 bg-matrix/12"
             : `${rankTone.shell} bg-zinc-950/82 group-hover:bg-zinc-900/95`
@@ -219,7 +229,7 @@ function LeaderboardTableRow({
       >
         <span
           className={[
-            "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-md border px-2 font-black",
+            "inline-flex h-7 min-w-7 items-center justify-center gap-1 rounded-md border px-1.5 font-black sm:h-8 sm:min-w-8 sm:px-2",
             current
               ? "border-matrix/70 text-matrix shadow-matrix-soft"
               : rankTone.badge
@@ -231,13 +241,13 @@ function LeaderboardTableRow({
       </td>
       <td
         className={[
-          "border-y px-3 py-3",
+          "border-y px-2 py-2.5 sm:px-3 sm:py-3",
           current
             ? "border-matrix/55 bg-matrix/12"
             : `${rankTone.middle} bg-zinc-950/82 group-hover:bg-zinc-900/95`
         ].join(" ")}
       >
-        <span className="block truncate font-black uppercase text-white">
+        <span className="block truncate text-[11px] font-black uppercase text-white sm:text-xs">
           {row.username}
         </span>
         {current && (
@@ -248,7 +258,7 @@ function LeaderboardTableRow({
       </td>
       <td
         className={[
-          "border-y px-3 py-3 text-right",
+          "rounded-r-md border-y border-r px-2 py-2.5 text-right sm:rounded-none sm:border-r-0 sm:px-3 sm:py-3",
           current
             ? "border-matrix/55 bg-matrix/12"
             : `${rankTone.middle} bg-zinc-950/82 group-hover:bg-zinc-900/95`
@@ -258,7 +268,7 @@ function LeaderboardTableRow({
       </td>
       <td
         className={[
-          "rounded-r-md border-y border-r px-3 py-3",
+          "hidden rounded-r-md border-y border-r px-3 py-3 sm:table-cell",
           current
             ? "border-matrix/55 bg-matrix/12"
             : `${rankTone.shell} bg-zinc-950/82 group-hover:bg-zinc-900/95`
@@ -289,12 +299,12 @@ function LeaderboardStatus({ icon, message, tone }: LeaderboardStatusProps) {
   return (
     <div
       className={[
-        "flex items-center gap-2 rounded-md border px-3 py-4 text-xs font-bold uppercase leading-relaxed",
+        "flex items-center gap-2 rounded-md border px-3 py-3 text-[11px] font-bold uppercase leading-relaxed sm:py-4 sm:text-xs",
         toneClass
       ].join(" ")}
     >
       {icon}
-      <span>{message}</span>
+      <span className="min-w-0 break-words">{message}</span>
     </div>
   );
 }

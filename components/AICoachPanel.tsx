@@ -38,7 +38,7 @@ export function AICoachPanel({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-black/82 px-4 py-6 backdrop-blur-md"
+          className="fixed inset-0 z-40 grid place-items-center overflow-x-hidden overflow-y-auto bg-black/82 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-6"
           role="dialog"
           aria-modal="true"
         >
@@ -58,7 +58,7 @@ export function AICoachPanel({
               />
             </div>
 
-            <div className="relative border-b border-cyber/25 px-5 py-5 sm:px-7">
+            <div className="relative border-b border-cyber/25 px-4 py-4 sm:px-7 sm:py-5">
               <button
                 type="button"
                 onClick={() => setDismissed(true)}
@@ -68,21 +68,21 @@ export function AICoachPanel({
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
 
-              <div className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.28em] text-cyber">
+              <div className="mb-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-cyber sm:text-xs sm:tracking-[0.28em]">
                 <BrainCircuit className="h-4 w-4" aria-hidden="true" />
                 Kernel coach uplink
               </div>
 
               <div className="relative pr-10">
                 <GlitchTitle text="KERNEL ANALYSIS COMPLETE" />
-                <p className="mt-3 max-w-3xl text-xs uppercase tracking-[0.2em] text-matrix/80">
+                <p className="mt-3 max-w-3xl text-[10px] uppercase leading-relaxed tracking-[0.14em] text-matrix/80 sm:text-xs sm:tracking-[0.2em]">
                   Match terminal reviewed. Tactical signal extracted from move
                   history.
                 </p>
               </div>
             </div>
 
-            <div className="relative grid gap-5 p-5 sm:p-7 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <div className="relative grid gap-4 p-4 sm:gap-5 sm:p-7 lg:grid-cols-[16rem_minmax(0,1fr)]">
               <div className="rounded-lg border border-cyber/20 bg-black/45 p-4">
                 <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase text-cyber">
                   <ScanLine className="h-4 w-4" aria-hidden="true" />
@@ -130,7 +130,7 @@ export function AICoachPanel({
               </div>
             </div>
 
-            <div className="relative flex flex-col gap-3 border-t border-cyber/20 px-5 py-5 sm:flex-row sm:justify-end sm:px-7">
+            <div className="relative flex flex-col gap-3 border-t border-cyber/20 px-4 py-4 sm:flex-row sm:justify-end sm:px-7 sm:py-5">
               <motion.button
                 type="button"
                 whileHover={{ y: -1 }}
@@ -161,7 +161,7 @@ export function AICoachPanel({
 
 function GlitchTitle({ text }: { text: string }) {
   return (
-    <h2 className="relative text-3xl font-black uppercase tracking-normal text-white sm:text-5xl">
+    <h2 className="relative text-2xl font-black uppercase tracking-normal text-white sm:text-4xl lg:text-5xl">
       <motion.span
         aria-hidden="true"
         className="absolute inset-0 text-cyber blur-[1px]"
@@ -221,7 +221,7 @@ function TypewriterLine({
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="relative overflow-hidden rounded-md border border-matrix/25 bg-black/55 px-4 py-3 text-sm leading-relaxed text-matrix shadow-[inset_0_0_22px_rgba(0,255,65,0.06)]"
+      className="relative overflow-hidden rounded-md border border-matrix/25 bg-black/55 px-3 py-3 text-xs leading-relaxed text-matrix shadow-[inset_0_0_22px_rgba(0,255,65,0.06)] sm:px-4 sm:text-sm"
     >
       <motion.span
         aria-hidden="true"

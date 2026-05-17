@@ -120,7 +120,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/88 px-4 py-8 backdrop-blur-md"
+          className="fixed inset-0 z-50 grid place-items-center overflow-x-hidden overflow-y-auto bg-black/88 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -130,7 +130,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 18 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="cyber-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-matrix/45 bg-black/80 p-5 shadow-[0_0_70px_rgba(0,255,65,0.18)]"
+            className="cyber-panel relative w-full max-w-xl overflow-hidden rounded-lg border border-matrix/45 bg-black/80 p-4 shadow-[0_0_70px_rgba(0,255,65,0.18)] sm:p-5"
           >
             <motion.div
               aria-hidden="true"
@@ -138,16 +138,16 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
               animate={{ y: [0, 520] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
             />
-            <div className="mb-5 flex items-center justify-between gap-3 border-b border-cyber/20 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-md border border-matrix/45 bg-matrix/10 shadow-matrix-soft">
-                  <Terminal className="h-5 w-5 text-matrix" aria-hidden="true" />
+            <div className="mb-4 flex items-center justify-between gap-3 border-b border-cyber/20 pb-4 sm:mb-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-matrix/45 bg-matrix/10 shadow-matrix-soft sm:h-11 sm:w-11">
+                  <Terminal className="h-4 w-4 text-matrix sm:h-5 sm:w-5" aria-hidden="true" />
                 </span>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.32em] text-cyber/70">
+                <div className="min-w-0">
+                  <p className="truncate text-[9px] uppercase tracking-[0.22em] text-cyber/70 sm:text-[10px] sm:tracking-[0.32em]">
                     secure identity layer
                   </p>
-                  <h2 className="text-xl font-black uppercase text-white">
+                  <h2 className="truncate text-base font-black uppercase text-white sm:text-xl">
                     {title}
                   </h2>
                 </div>
@@ -222,7 +222,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
 
             <div className="my-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-cyber/55">
               <span className="h-px flex-1 bg-cyber/20" />
-              <span>OR CONTINUE WITH</span>
+                <span className="shrink-0">OR CONTINUE WITH</span>
               <span className="h-px flex-1 bg-cyber/20" />
             </div>
 
@@ -252,7 +252,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     className={[
-                      "border-l px-3 py-2 text-xs leading-relaxed",
+                      "break-words border-l px-3 py-2 text-[11px] leading-relaxed sm:text-xs",
                       log.includes("FAILURE")
                         ? "border-danger bg-danger/10 text-danger"
                         : log.includes("awaiting compliance")

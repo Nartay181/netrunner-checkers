@@ -17,6 +17,8 @@ html,
 body {
   min-height: 100%;
   margin: 0;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -105,8 +107,14 @@ button {
 }
 
 .board-frame {
-  width: min(86vw, calc(100vh - 11rem), 720px);
+  width: min(94vw, calc(100svh - 11rem), 680px);
   max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .board-frame {
+    width: min(88vw, calc(100svh - 12rem), 720px);
+  }
 }
 
 .terminal-scroll {
