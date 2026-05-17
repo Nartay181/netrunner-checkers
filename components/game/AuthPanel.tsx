@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useEffect } from "react"; // Импорт useEffect теперь на своем месте
 import { AnimatePresence, motion } from "framer-motion";
 import { KeyRound, Loader2, Mail, Terminal, User } from "lucide-react";
 import type { AuthController } from "@/hooks/useAuth";
@@ -21,7 +21,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     "[TRACE]: Awaiting operator credentials."
   ]);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [formLoading, setFormLoading] = useState(false); // Локальный стейт загрузки формы
+  const [formLoading, setFormLoading] = useState(false);
   const [username, setUsername] = useState("");
 
   const title = mode === "login" ? "ACCESS_LOGIN" : "INITIALIZE_REGISTRATION";
@@ -34,10 +34,35 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
   );
   const canSubmit = !validationHint;
 
+  // Автоматический перехват хэш-токенов от Google OAuth в URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hash = window.location.hash;
+    if (hash && (hash.includes("access_token=") || hash.includes("error="))) {
+      pushLog("[SYSTEM]: Detecting Google security handshake in URL...");
+
+      // Даем Supabase время распарсить хэш, затем принудительно запрашиваем сессию
+      const timeoutId = setTimeout(async () => {
+        if (auth.supabase) {
+          const { data, error } = await auth.supabase.auth.getSession();
+          if (data?.session) {
+            pushLog("[AUTH_SUCCESS]: Handshake verified. Session established.");
+            window.history.replaceState(null, "", window.location.pathname);
+            window.location.reload(); // Жесткий релоад, чтобы зафиксировать сессию на мобилке
+          } else if (error) {
+            pushLog(`[AUTH_FAILURE]: Matrix handshake failed: ${error.message}`);
+          }
+        }
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [auth.supabase]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Блокируем отправку только если уже идет процесс авторизации
     if (formLoading || oauthLoading) {
       return;
     }
@@ -116,7 +141,8 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
       }
 
       if (data?.url) {
-        window.location.replace(data.url);
+        // Заменили replace на href для стабильного сохранения реферера и куки на мобилках
+        window.location.href = data.url;
         return;
       }
 
