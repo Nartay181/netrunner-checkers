@@ -8,7 +8,7 @@ import {
 } from "@/lib/ai";
 import type { NodeSide } from "@/lib/checkers";
 import type { RoomSnapshot } from "@/lib/multiplayer";
-import { LeaderboardPanel, type LeaderboardRow } from "./LeaderboardPanel";
+import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 
 export type GameMode = "pvp" | "ai" | "remote";
@@ -23,8 +23,9 @@ export type MatchConfig = {
 };
 
 type MatchSetupProps = {
+  authUserId?: string;
   authUsername: string;
-  leaderboardRows: LeaderboardRow[];
+  leaderboardRefreshKey: number;
   onStartRemote: (
     roomCode: string,
     playerName: string,
@@ -41,8 +42,9 @@ const difficultyIcons = {
 };
 
 export function MatchSetup({
+  authUserId,
   authUsername,
-  leaderboardRows,
+  leaderboardRefreshKey,
   onStart,
   onStartRemote
 }: MatchSetupProps) {
@@ -123,7 +125,10 @@ export function MatchSetup({
         />
       </section>
 
-      <LeaderboardPanel rows={leaderboardRows} />
+      <LeaderboardPanel
+        currentUserId={authUserId}
+        refreshKey={leaderboardRefreshKey}
+      />
     </div>
   );
 }

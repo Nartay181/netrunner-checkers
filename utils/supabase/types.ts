@@ -12,11 +12,12 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null;
-          city: string;
+          city: string | null;
           country: string;
           created_at: string;
           display_name: string | null;
           draws: number;
+          elo: number;
           games_played: number;
           hack_rating: number;
           id: string;
@@ -28,11 +29,12 @@ export type Database = {
         };
         Insert: {
           avatar_url?: string | null;
-          city?: string;
+          city?: string | null;
           country?: string;
           created_at?: string;
           display_name?: string | null;
           draws?: number;
+          elo?: number;
           games_played?: number;
           hack_rating?: number;
           id: string;
@@ -44,11 +46,12 @@ export type Database = {
         };
         Update: {
           avatar_url?: string | null;
-          city?: string;
+          city?: string | null;
           country?: string;
           created_at?: string;
           display_name?: string | null;
           draws?: number;
+          elo?: number;
           games_played?: number;
           hack_rating?: number;
           id?: string;

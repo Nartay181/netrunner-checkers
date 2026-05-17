@@ -13,12 +13,7 @@ import { AICoachPanel } from "../AICoachPanel";
 import { AuthPanel } from "./AuthPanel";
 import { CyberBoard } from "./CyberBoard";
 import { HeaderBar } from "./HeaderBar";
-import {
-  CURRENT_USER_ID,
-  DEFAULT_LEADERBOARD,
-  LeaderboardPanel,
-  type LeaderboardRow
-} from "./LeaderboardPanel";
+import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MatchSetup, type MatchConfig } from "./MatchSetup";
 import { ProModal } from "./ProModal";
 import { TerminalPanel } from "./TerminalPanel";
@@ -29,8 +24,9 @@ export function NetrunnerCheckers() {
   const [matchConfig, setMatchConfig] = useState<MatchConfig | null>(null);
   const [matchKey, setMatchKey] = useState(0);
   const [proOpen, setProOpen] = useState(false);
-  const [leaderboardRows, setLeaderboardRows] =
-    useState<LeaderboardRow[]>(DEFAULT_LEADERBOARD);
+  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
+  const currentUserId = auth.user?.id;
+  const supabase = auth.supabase;
 
   function handleStart(config: MatchConfig) {
     setMatchKey((current) => current + 1);
@@ -57,20 +53,37 @@ export function NetrunnerCheckers() {
     });
   }
 
-  const handleHumanAiWin = useCallback((difficulty: AiDifficulty) => {
-    const difficultyMeta = AI_DIFFICULTIES.find(
-      (option) => option.id === difficulty
-    );
-    const ratingBonus = difficultyMeta?.ratingBonus ?? 32;
+  const handleHumanAiWin = useCallback(
+    async (difficulty: AiDifficulty) => {
+      if (!currentUserId || !supabase) {
+        return;
+      }
 
-    setLeaderboardRows((rows) =>
-      rows.map((row) =>
-        row.id === CURRENT_USER_ID
-          ? { ...row, rating: row.rating + ratingBonus }
-          : row
-      )
-    );
-  }, []);
+      const difficultyMeta = AI_DIFFICULTIES.find(
+        (option) => option.id === difficulty
+      );
+      const ratingBonus = difficultyMeta?.ratingBonus ?? 32;
+      const { data } = await supabase
+        .from("profiles")
+        .select("elo")
+        .eq("id", currentUserId)
+        .maybeSingle();
+      const nextElo = (data?.elo ?? 1000) + ratingBonus;
+
+      await supabase.from("profiles").upsert(
+        {
+          city: "Almaty",
+          elo: nextElo,
+          id: currentUserId,
+          username: auth.username
+        },
+        { onConflict: "id" }
+      );
+
+      setLeaderboardRefreshKey((current) => current + 1);
+    },
+    [auth.username, currentUserId, supabase]
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-void text-slate-100">
@@ -87,8 +100,9 @@ export function NetrunnerCheckers() {
             turnLabel="SETUP"
           />
           <MatchSetup
+            authUserId={currentUserId}
             authUsername={auth.username}
-            leaderboardRows={leaderboardRows}
+            leaderboardRefreshKey={leaderboardRefreshKey}
             onStart={handleStart}
             onStartRemote={handleStartRemote}
           />
@@ -97,8 +111,9 @@ export function NetrunnerCheckers() {
         <ActiveMatch
           key={matchKey}
           config={matchConfig}
+          authUserId={currentUserId}
           authUsername={auth.username}
-          leaderboardRows={leaderboardRows}
+          leaderboardRefreshKey={leaderboardRefreshKey}
           onHumanAiWin={handleHumanAiWin}
           onOpenPro={() => setProOpen(true)}
           onPlayAgain={() => handleStart(matchConfig)}
@@ -114,10 +129,11 @@ export function NetrunnerCheckers() {
 }
 
 type ActiveMatchProps = {
+  authUserId?: string;
   authUsername: string;
   config: MatchConfig;
-  leaderboardRows: LeaderboardRow[];
-  onHumanAiWin: (difficulty: AiDifficulty) => void;
+  leaderboardRefreshKey: number;
+  onHumanAiWin: (difficulty: AiDifficulty) => Promise<void> | void;
   onOpenPro: () => void;
   onPlayAgain: () => void;
   onReset: () => void;
@@ -125,9 +141,10 @@ type ActiveMatchProps = {
 };
 
 function ActiveMatch({
+  authUserId,
   authUsername,
   config,
-  leaderboardRows,
+  leaderboardRefreshKey,
   onHumanAiWin,
   onOpenPro,
   onPlayAgain,
@@ -137,7 +154,7 @@ function ActiveMatch({
   const handleMatchEnd = useCallback(
     (status: MatchStatus) => {
       if (config.mode === "ai" && status.winner === "runner") {
-        onHumanAiWin(config.difficulty);
+        void onHumanAiWin(config.difficulty);
       }
     },
     [config.difficulty, config.mode, onHumanAiWin]
@@ -210,7 +227,10 @@ function ActiveMatch({
             remoteWaiting={game.isRemoteWaiting}
             selectedSquare={game.selectedSquare}
           />
-          <LeaderboardPanel rows={leaderboardRows} />
+          <LeaderboardPanel
+            currentUserId={authUserId}
+            refreshKey={leaderboardRefreshKey}
+          />
         </div>
       </div>
 

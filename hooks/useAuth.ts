@@ -48,6 +48,73 @@ export function useAuth() {
     [supabase]
   );
 
+  const completeOAuthRedirect = useCallback(async () => {
+    if (!supabase || typeof window === "undefined") {
+      return null;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const searchParams = currentUrl.searchParams;
+    const hashParams = new URLSearchParams(
+      currentUrl.hash.startsWith("#")
+        ? currentUrl.hash.slice(1)
+        : currentUrl.hash
+    );
+    const oauthError =
+      searchParams.get("error_description") ??
+      hashParams.get("error_description") ??
+      searchParams.get("error") ??
+      hashParams.get("error");
+    const code = searchParams.get("code");
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const hasOAuthHash = Boolean(
+      accessToken ||
+        refreshToken ||
+        hashParams.get("error") ||
+        hashParams.get("error_description")
+    );
+    const hasOAuthPayload = Boolean(code || accessToken || oauthError);
+
+    if (!hasOAuthPayload) {
+      return null;
+    }
+
+    try {
+      if (oauthError) {
+        throw new Error(oauthError);
+      }
+
+      if (code) {
+        const { data, error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          throw exchangeError;
+        }
+
+        return data.session;
+      }
+
+      if (accessToken && refreshToken) {
+        const { data, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        return data.session;
+      }
+
+      return null;
+    } finally {
+      clearOAuthParams(currentUrl, hasOAuthHash);
+    }
+  }, [supabase]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -62,6 +129,8 @@ export function useAuth() {
     }
 
     try {
+      await completeOAuthRedirect();
+
       const { data, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
@@ -80,7 +149,7 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
-  }, [loadProfile, supabase]);
+  }, [completeOAuthRedirect, loadProfile, supabase]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
@@ -246,13 +315,13 @@ export function useAuth() {
       return null;
     }
 
+    const normalizedUsername = sanitizeUsername(nextUsername);
+
     const profilePayload: ProfileInsert = {
       city: "Almaty",
-      country: "Kazakhstan",
-      display_name: nextUsername,
-      hack_rating: 1000,
+      elo: 1000,
       id: nextUser.id,
-      username: nextUsername
+      username: normalizedUsername
     };
 
     const { data, error: upsertError } = await supabase
@@ -289,15 +358,59 @@ function sanitizeUsername(username: string) {
 }
 
 function getUsername(user: User | null, profile: Profile | null) {
-  const metadataUsername = user?.user_metadata?.username;
+  if (profile?.display_name) {
+    return profile.display_name;
+  }
 
   if (profile?.username) {
     return profile.username;
   }
 
-  if (typeof metadataUsername === "string" && metadataUsername.trim()) {
-    return metadataUsername.trim();
+  const metadataDisplayName = getMetadataString(user, [
+    "full_name",
+    "name",
+    "display_name",
+    "username"
+  ]);
+
+  if (metadataDisplayName) {
+    return metadataDisplayName;
   }
 
   return user?.email?.split("@")[0] ?? "UNAUTHENTICATED";
+}
+
+function getMetadataString(user: User | null, keys: string[]) {
+  for (const key of keys) {
+    const value = user?.user_metadata?.[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function clearOAuthParams(currentUrl: URL, clearHash: boolean) {
+  const authSearchParams = [
+    "code",
+    "error",
+    "error_code",
+    "error_description",
+    "provider",
+    "state"
+  ];
+
+  authSearchParams.forEach((param) => currentUrl.searchParams.delete(param));
+
+  if (clearHash) {
+    currentUrl.hash = "";
+  }
+
+  window.history.replaceState(
+    window.history.state,
+    document.title,
+    `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
+  );
 }
