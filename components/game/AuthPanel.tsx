@@ -21,23 +21,24 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     "[TRACE]: Awaiting operator credentials."
   ]);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false); // Локальный стейт загрузки формы
   const [username, setUsername] = useState("");
-  const title =
-      mode === "login" ? "ACCESS_LOGIN" : "INITIALIZE_REGISTRATION";
+
+  const title = mode === "login" ? "ACCESS_LOGIN" : "INITIALIZE_REGISTRATION";
   const primaryActionLabel = mode === "register" ? "CREATE ACCOUNT" : "SIGN IN";
-  const primaryLoadingLabel =
-      mode === "register" ? "CREATING ACCOUNT" : "SIGNING IN";
+  const primaryLoadingLabel = mode === "register" ? "CREATING ACCOUNT" : "SIGNING IN";
+
   const validationHint = useMemo(
       () => getValidationHint({ email, mode, password, username }),
       [email, mode, password, username]
   );
   const canSubmit = !validationHint;
 
-  // Оптимизировано для мобильных тач-скринов: выносим асинхронный поток из дефолтного ивента
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (auth.loading) {
+    // Блокируем отправку только если уже идет процесс авторизации
+    if (formLoading || oauthLoading) {
       return;
     }
 
@@ -47,6 +48,7 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     }
 
     pushLog(`[SYSTEM]: ${title} sequence transmitted.`);
+    setFormLoading(true);
 
     (async () => {
       try {
@@ -54,6 +56,8 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
             mode === "login"
                 ? await auth.signIn(email.trim(), password)
                 : await auth.signUp(email.trim(), password, username.trim());
+
+        setFormLoading(false);
 
         if (result && "error" in result && result.error) {
           pushLog(`[AUTH_FAILURE]: ${result.error}`);
@@ -67,13 +71,14 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
 
         pushLog("[AUTH_SUCCESS]: Secure session established.");
       } catch (err) {
+        setFormLoading(false);
         pushLog(`[AUTH_FAILURE]: ${getAuthPanelMessage(err)}`);
       }
     })();
   }
 
   async function handleGoogleSignIn() {
-    if (auth.loading || oauthLoading) {
+    if (formLoading || oauthLoading) {
       return;
     }
 
@@ -134,7 +139,6 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
       <AnimatePresence>
         {open && (
             <motion.div
-                // Подняли z-index до максимума [9999], чтобы избежать перекрытий слоев на мобилках
                 className="fixed inset-0 z-[9999] grid place-items-center overflow-x-hidden overflow-y-auto bg-black/88 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -214,23 +218,22 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
                       value={password}
                   />
 
-                  {/* Убран motion.button — теперь это стабильная кнопка с нативным тачем active:scale */}
                   <button
                       type="submit"
-                      disabled={auth.loading}
+                      disabled={formLoading || oauthLoading}
                       className={[
                         "mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-3.5 text-sm font-black uppercase tracking-[0.08em] transition-all duration-150 disabled:cursor-wait disabled:opacity-65",
                         canSubmit
                             ? "border-matrix bg-[#00ff66] text-black shadow-[0_0_24px_rgba(0,255,102,0.38)] active:scale-[0.98] hover:bg-matrix"
-                            : "border-matrix/45 bg-zinc-950 text-matrix shadow-matrix-soft active:scale-[0.98] hover:bg-matrix/10"
+                            : "border-matrix/45 bg-zinc-950 text-matrix shadow-matrix-soft active:scale-[0.98] hover:border-matrix hover:bg-matrix/10"
                       ].join(" ")}
                   >
-                    {auth.loading ? (
+                    {formLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
                         <Terminal className="h-4 w-4" aria-hidden="true" />
                     )}
-                    {auth.loading ? primaryLoadingLabel : primaryActionLabel}
+                    {formLoading ? primaryLoadingLabel : primaryActionLabel}
                   </button>
                 </form>
 
@@ -240,11 +243,10 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
                   <span className="h-px flex-1 bg-cyber/20" />
                 </div>
 
-                {/* Кнопка Google тоже переведена на нативный клик, убирающий зависания анимаций на iOS/Android */}
                 <button
                     type="button"
                     onClick={handleGoogleSignIn}
-                    disabled={auth.loading || oauthLoading}
+                    disabled={formLoading || oauthLoading}
                     className="group flex w-full cursor-pointer items-center justify-center gap-3 rounded-md border border-cyber/35 bg-white px-4 py-3.5 text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_0_22px_rgba(0,243,255,0.12)] transition-all duration-150 active:scale-[0.98] hover:border-cyber hover:shadow-cyber-soft disabled:cursor-wait disabled:opacity-65"
                 >
                   {oauthLoading ? (
@@ -295,7 +297,6 @@ type AuthFieldProps = {
   value: string;
 };
 
-// Компонент переписан с div вместо label, чтобы убрать мобильные баги с фокусом полей и прыгающей клавиатурой
 function AuthField({
                      icon: Icon,
                      label,
