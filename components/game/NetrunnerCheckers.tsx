@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AI_DIFFICULTIES,
   AI_SIDE,
@@ -9,9 +9,11 @@ import {
 import type { NodeSide } from "@/lib/checkers";
 import type { RoomSnapshot } from "@/lib/multiplayer";
 import { useAuth } from "@/hooks/useAuth";
+import { archiveCompletedMatch } from "@/lib/gameHistory";
 import { AICoachPanel } from "../AICoachPanel";
 import { AuthPanel } from "./AuthPanel";
 import { CyberBoard } from "./CyberBoard";
+import { GameHistoryPanel } from "./GameHistoryPanel";
 import { HeaderBar } from "./HeaderBar";
 import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MatchSetup, type MatchConfig } from "./MatchSetup";
@@ -24,6 +26,7 @@ export function NetrunnerCheckers() {
   const [matchConfig, setMatchConfig] = useState<MatchConfig | null>(null);
   const [matchKey, setMatchKey] = useState(0);
   const [proOpen, setProOpen] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
   const currentUserId = auth.user?.id;
   const supabase = auth.supabase;
@@ -55,14 +58,15 @@ export function NetrunnerCheckers() {
 
   const handleHumanAiWin = useCallback(
     async (difficulty: AiDifficulty) => {
-      if (!currentUserId || !supabase) {
-        return;
-      }
-
       const difficultyMeta = AI_DIFFICULTIES.find(
         (option) => option.id === difficulty
       );
       const ratingBonus = difficultyMeta?.ratingBonus ?? 32;
+
+      if (!currentUserId || !supabase) {
+        return ratingBonus;
+      }
+
       const { data } = await supabase
         .from("profiles")
         .select("elo")
@@ -81,6 +85,7 @@ export function NetrunnerCheckers() {
       );
 
       setLeaderboardRefreshKey((current) => current + 1);
+      return ratingBonus;
     },
     [auth.username, currentUserId, supabase]
   );
@@ -102,6 +107,7 @@ export function NetrunnerCheckers() {
           <MatchSetup
             authUserId={currentUserId}
             authUsername={auth.username}
+            historyRefreshKey={historyRefreshKey}
             leaderboardRefreshKey={leaderboardRefreshKey}
             onStart={handleStart}
             onStartRemote={handleStartRemote}
@@ -113,12 +119,17 @@ export function NetrunnerCheckers() {
           config={matchConfig}
           authUserId={currentUserId}
           authUsername={auth.username}
+          historyRefreshKey={historyRefreshKey}
           leaderboardRefreshKey={leaderboardRefreshKey}
           onHumanAiWin={handleHumanAiWin}
           onOpenPro={() => setProOpen(true)}
           onPlayAgain={() => handleStart(matchConfig)}
           onReset={handleReset}
           onSignOut={auth.signOut}
+          supabase={supabase}
+          onHistoryArchived={() =>
+            setHistoryRefreshKey((current) => current + 1)
+          }
         />
       )}
 
@@ -132,38 +143,36 @@ type ActiveMatchProps = {
   authUserId?: string;
   authUsername: string;
   config: MatchConfig;
+  historyRefreshKey: number;
   leaderboardRefreshKey: number;
-  onHumanAiWin: (difficulty: AiDifficulty) => Promise<void> | void;
+  onHistoryArchived: () => void;
+  onHumanAiWin: (difficulty: AiDifficulty) => Promise<number> | number;
   onOpenPro: () => void;
   onPlayAgain: () => void;
   onReset: () => void;
   onSignOut: () => void;
+  supabase: ReturnType<typeof useAuth>["supabase"];
 };
 
 function ActiveMatch({
   authUserId,
   authUsername,
   config,
+  historyRefreshKey,
   leaderboardRefreshKey,
+  onHistoryArchived,
   onHumanAiWin,
   onOpenPro,
   onPlayAgain,
   onReset,
-  onSignOut
+  onSignOut,
+  supabase
 }: ActiveMatchProps) {
-  const handleMatchEnd = useCallback(
-    (status: MatchStatus) => {
-      if (config.mode === "ai" && status.winner === "runner") {
-        void onHumanAiWin(config.difficulty);
-      }
-    },
-    [config.difficulty, config.mode, onHumanAiWin]
-  );
+  const archivedMatchRef = useRef(false);
 
   const game = useCheckers({
     aiDifficulty: config.difficulty,
     mode: config.mode,
-    onMatchEnd: handleMatchEnd,
     initialRoomSnapshot: config.initialRoomSnapshot,
     playerName: config.playerName,
     playerSide: config.playerSide,
@@ -178,6 +187,50 @@ function ActiveMatch({
       : config.mode === "remote"
         ? `REMOTE: ${config.roomCode ?? "PRIVATE"}`
       : "LOCAL PVP";
+
+  useEffect(() => {
+    if (!game.matchStatus || archivedMatchRef.current) {
+      return;
+    }
+
+    const completedStatus = game.matchStatus;
+
+    archivedMatchRef.current = true;
+
+    if (config.mode === "remote" && config.playerSide !== "runner") {
+      return;
+    }
+
+    void (async () => {
+      const eloChange =
+        config.mode === "ai" && completedStatus.winner === "runner"
+          ? await onHumanAiWin(config.difficulty)
+          : 0;
+      const archivePayload = buildMatchHistoryPayload({
+        authUserId,
+        authUsername,
+        config,
+        eloChange,
+        remotePlayers: game.remotePlayers,
+        status: completedStatus
+      });
+
+      const result = await archiveCompletedMatch(supabase, archivePayload);
+
+      if (!result.error) {
+        onHistoryArchived();
+      }
+    })();
+  }, [
+    authUserId,
+    authUsername,
+    config,
+    game.matchStatus,
+    game.remotePlayers,
+    onHistoryArchived,
+    onHumanAiWin,
+    supabase
+  ]);
 
   return (
     <>
@@ -231,6 +284,10 @@ function ActiveMatch({
             currentUserId={authUserId}
             refreshKey={leaderboardRefreshKey}
           />
+          <GameHistoryPanel
+            refreshKey={historyRefreshKey}
+            userId={authUserId}
+          />
         </div>
       </div>
 
@@ -241,4 +298,53 @@ function ActiveMatch({
       />
     </>
   );
+}
+
+type MatchHistoryPayloadOptions = {
+  authUserId?: string;
+  authUsername: string;
+  config: MatchConfig;
+  eloChange: number;
+  remotePlayers: RoomSnapshot["players"];
+  status: MatchStatus;
+};
+
+function buildMatchHistoryPayload({
+  authUserId,
+  authUsername,
+  config,
+  eloChange,
+  remotePlayers,
+  status
+}: MatchHistoryPayloadOptions) {
+  const remoteRunner = remotePlayers.find((player) => player.side === "runner");
+  const remoteDaemon = remotePlayers.find((player) => player.side === "daemon");
+  const playerBlackId =
+    config.mode === "remote" ? remoteRunner?.id ?? null : authUserId ?? null;
+  const playerBlackName =
+    config.mode === "remote"
+      ? remoteRunner?.name ?? "Remote Runner"
+      : authUsername;
+  const playerRedId = config.mode === "remote" ? remoteDaemon?.id ?? null : null;
+  const playerRedName =
+    config.mode === "remote"
+      ? remoteDaemon?.name ?? "Remote Daemon"
+      : config.mode === "ai"
+        ? "Kernel Security Bot"
+        : "Local Opponent";
+  const winnerId =
+    status.winner === "draw"
+      ? null
+      : status.winner === "runner"
+        ? playerBlackId
+        : playerRedId;
+
+  return {
+    eloChange,
+    playerBlackId,
+    playerBlackName,
+    playerRedId,
+    playerRedName,
+    winnerId
+  };
 }

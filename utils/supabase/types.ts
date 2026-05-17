@@ -177,6 +177,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      match_history: {
+        Row: {
+          created_at: string;
+          elo_change: number;
+          id: string;
+          player_black_id: string | null;
+          player_black_name: string;
+          player_red_id: string | null;
+          player_red_name: string;
+          winner_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          elo_change?: number;
+          id?: string;
+          player_black_id?: string | null;
+          player_black_name: string;
+          player_red_id?: string | null;
+          player_red_name: string;
+          winner_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          elo_change?: number;
+          id?: string;
+          player_black_id?: string | null;
+          player_black_name?: string;
+          player_red_id?: string | null;
+          player_red_name?: string;
+          winner_id?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai";
 import type { NodeSide } from "@/lib/checkers";
 import type { RoomSnapshot } from "@/lib/multiplayer";
+import { GameHistoryPanel } from "./GameHistoryPanel";
 import { LeaderboardPanel } from "./LeaderboardPanel";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 
@@ -25,6 +26,7 @@ export type MatchConfig = {
 type MatchSetupProps = {
   authUserId?: string;
   authUsername: string;
+  historyRefreshKey: number;
   leaderboardRefreshKey: number;
   onStartRemote: (
     roomCode: string,
@@ -44,6 +46,7 @@ const difficultyIcons = {
 export function MatchSetup({
   authUserId,
   authUsername,
+  historyRefreshKey,
   leaderboardRefreshKey,
   onStart,
   onStartRemote
@@ -125,10 +128,16 @@ export function MatchSetup({
         />
       </section>
 
-      <LeaderboardPanel
-        currentUserId={authUserId}
-        refreshKey={leaderboardRefreshKey}
-      />
+      <div className="grid gap-5 lg:max-w-sm">
+        <LeaderboardPanel
+          currentUserId={authUserId}
+          refreshKey={leaderboardRefreshKey}
+        />
+        <GameHistoryPanel
+          refreshKey={historyRefreshKey}
+          userId={authUserId}
+        />
+      </div>
     </div>
   );
 }
