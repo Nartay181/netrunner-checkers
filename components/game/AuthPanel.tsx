@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState, useEffect } from "react"; // Импорт useEffect теперь на своем месте
+import { FormEvent, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { KeyRound, Loader2, Mail, Terminal, User } from "lucide-react";
 import type { AuthController } from "@/hooks/useAuth";
@@ -33,32 +33,6 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
       [email, mode, password, username]
   );
   const canSubmit = !validationHint;
-
-  // Автоматический перехват хэш-токенов от Google OAuth в URL
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const hash = window.location.hash;
-    if (hash && (hash.includes("access_token=") || hash.includes("error="))) {
-      pushLog("[SYSTEM]: Detecting Google security handshake in URL...");
-
-      // Даем Supabase время распарсить хэш, затем принудительно запрашиваем сессию
-      const timeoutId = setTimeout(async () => {
-        if (auth.supabase) {
-          const { data, error } = await auth.supabase.auth.getSession();
-          if (data?.session) {
-            pushLog("[AUTH_SUCCESS]: Handshake verified. Session established.");
-            window.history.replaceState(null, "", window.location.pathname);
-            window.location.reload(); // Жесткий релоад, чтобы зафиксировать сессию на мобилке
-          } else if (error) {
-            pushLog(`[AUTH_FAILURE]: Matrix handshake failed: ${error.message}`);
-          }
-        }
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [auth.supabase]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,14 +96,17 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
     setOauthLoading(true);
 
     try {
-      const fallbackRedirect = typeof window !== "undefined" && window.location.origin
+      const origin = typeof window !== "undefined" && window.location.origin
           ? window.location.origin
           : "https://netrunner-checkers.vercel.app";
+
+      // ВАЖНО: Перенаправляем на эндпоинт /auth/callback для серверного обмена токенов
+      const redirectToUrl = `${origin}/auth/callback`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: fallbackRedirect,
+          redirectTo: redirectToUrl,
           skipBrowserRedirect: false
         }
       });
@@ -141,7 +118,6 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
       }
 
       if (data?.url) {
-        // Заменили replace на href для стабильного сохранения реферера и куки на мобилках
         window.location.href = data.url;
         return;
       }
