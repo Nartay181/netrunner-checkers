@@ -265,7 +265,7 @@ function ActiveMatch({
       />
 
       <div className="relative z-10 mx-auto grid w-full max-w-[98rem] items-start gap-4 overflow-x-hidden px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)_minmax(18rem,22rem)] xl:px-8 xl:py-8">
-        <div className="order-2 grid min-w-0 gap-4 sm:gap-5 xl:order-1">
+        <div className="order-2 min-w-0 xl:order-1 xl:col-start-1 xl:row-start-1">
           <PlayerProfilePanel
             authenticated={authenticated}
             email={authEmail}
@@ -273,13 +273,16 @@ function ActiveMatch({
             profile={authProfile}
             username={authUsername}
           />
+        </div>
+
+        <div className="order-5 min-w-0 xl:order-2 xl:col-start-1 xl:row-start-2">
           <GameHistoryPanel
             refreshKey={historyRefreshKey}
             userId={authUserId}
           />
         </div>
 
-        <div className="order-1 min-w-0 xl:order-2">
+        <div className="order-1 min-w-0 xl:order-3 xl:col-start-2 xl:row-span-2 xl:row-start-1">
           <CyberBoard
             botSide={config.mode === "ai" ? AI_SIDE : null}
             board={game.board}
@@ -299,28 +302,27 @@ function ActiveMatch({
           />
         </div>
 
-        <div className="order-3 grid min-w-0 gap-4 sm:gap-5">
-          <div className="order-2 xl:order-1">
-            <TerminalPanel
-              aiThinking={game.aiThinking}
-              authUsername={authUsername}
-              botEnabled={config.mode === "ai"}
-              logs={game.logs}
-              matchStatus={game.matchStatus}
-              nodeCounts={game.nodeCounts}
-              remoteConnectionStatus={game.remoteConnectionStatus}
-              remoteError={game.remoteError}
-              remoteOpponentConnected={game.remoteOpponentConnected}
-              remoteWaiting={game.isRemoteWaiting}
-              selectedSquare={game.selectedSquare}
-            />
-          </div>
-          <div className="order-1 xl:order-2">
-            <LeaderboardPanel
-              currentUserId={authUserId}
-              refreshKey={leaderboardRefreshKey}
-            />
-          </div>
+        <div className="order-4 min-w-0 xl:order-4 xl:col-start-3 xl:row-start-1">
+          <TerminalPanel
+            aiThinking={game.aiThinking}
+            authUsername={authUsername}
+            botEnabled={config.mode === "ai"}
+            logs={game.logs}
+            matchStatus={game.matchStatus}
+            nodeCounts={game.nodeCounts}
+            remoteConnectionStatus={game.remoteConnectionStatus}
+            remoteError={game.remoteError}
+            remoteOpponentConnected={game.remoteOpponentConnected}
+            remoteWaiting={game.isRemoteWaiting}
+            selectedSquare={game.selectedSquare}
+          />
+        </div>
+
+        <div className="order-3 min-w-0 xl:order-5 xl:col-start-3 xl:row-start-2">
+          <LeaderboardPanel
+            currentUserId={authUserId}
+            refreshKey={leaderboardRefreshKey}
+          />
         </div>
       </div>
 
