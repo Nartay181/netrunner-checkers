@@ -13,8 +13,12 @@
 ## Функционал платформы и Архитектура (Key Features)
 
 ### 1. Real-time Multiplayer Matrix `[ РЕАЛИЗОВАНО ]`
-![Netrunner Checkers Google](/public/assets/multiplayer.gif)
-![Netrunner Checkers Google](/public/assets/multiplayerphone.gif)
+
+<img src="/public/assets/multiplayer.gif" width="400" height="200" alt="multiplayer" />
+
+<img src="/public/assets/multiplayerphone.gif" width="200" height="400" alt="multiplayerPhone" />
+
+
 * **Синхронизация через WebSockets:** Полноценный онлайн-мультиплеер на базе Supabase Realtime Channels. Ходы передаются между игроками мгновенно и без задержек.
 * **Архитектура комнат (Rooms):** Динамическое создание игровых сессий, где один игрок выступает на стороне защиты (Daemon), а второй — в роли взломщика (Runner).
 * **Стейт-менеджмент матча:** Автоматическая обработка отключений, синхронизация текущего состояния доски и валидация ходов на клиентах.
