@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react"; // Импортируем сам React для явных типов
 import { AnimatePresence, motion } from "framer-motion";
 import { KeyRound, Loader2, Mail, Terminal, User } from "lucide-react";
 import type { AuthController } from "@/hooks/useAuth";
@@ -34,7 +34,56 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
   );
   const canSubmit = !validationHint;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // НЕУБИВАЕМЫЙ ИНЖЕКТОР ТОКЕНОВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hash = window.location.hash;
+
+    // Проверяем физическое наличие access_token в URL хэше
+    if (hash && hash.includes("access_token=")) {
+      pushLog("[SYSTEM]: Google token matrix detected. Injecting session...");
+
+      // Извлекаем параметры из хэша вручную
+      const params = new URLSearchParams(hash.replace("#", "?"));
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+
+      // Фиксируем инстанс в локальную константу, чтобы TS не ругался на возможный null (TS18047)
+      const supabaseInstance = auth.supabase;
+
+      if (accessToken && refreshToken && supabaseInstance) {
+        (async () => {
+          try {
+            // Используем локально проверенный инстанс
+            const { data, error } = await supabaseInstance.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (data?.session) {
+              pushLog("[AUTH_SUCCESS]: Handshake established via client injection.");
+
+              // Красиво чистим URL от токенов и ошибок
+              window.history.replaceState(null, "", window.location.pathname);
+
+              // Даем микрозадержку и перезагружаем страницу для обновления состояния useAuth
+              setTimeout(() => {
+                window.location.reload();
+              }, 400);
+            } else if (error) {
+              pushLog(`[AUTH_FAILURE]: Injection failed: ${error.message}`);
+            }
+          } catch (err) {
+            pushLog("[AUTH_FAILURE]: Critical exception during token injection.");
+          }
+        })();
+      }
+    }
+  }, [auth.supabase]);
+
+  // Заменили FormEvent на React.FormEvent для совместимости с React 19 / Next 15 (TS6385)
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (formLoading || oauthLoading) {
@@ -100,7 +149,6 @@ export function AuthPanel({ auth, open }: AuthPanelProps) {
           ? window.location.origin
           : "https://netrunner-checkers.vercel.app";
 
-      // ВАЖНО: Перенаправляем на эндпоинт /auth/callback для серверного обмена токенов
       const redirectToUrl = `${origin}/auth/callback`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
