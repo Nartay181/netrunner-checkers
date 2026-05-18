@@ -14,8 +14,7 @@
 
 ### 1. Real-time Multiplayer Matrix `[ РЕАЛИЗОВАНО ]`
 
-<img src="/public/assets/multiplayerphone.gif" width="200" height="400" alt="multiplayerPhone" />
-<img src="/public/assets/multiplayer.gif" width="400" height="200" alt="multiplayer" />
+<img src="/public/assets/multiplayerphone.gif" width="200" height="400" alt="multiplayerPhone" /><img src="/public/assets/multiplayer.gif" width="400" height="200" alt="multiplayer" />
 
 
 * **Синхронизация через WebSockets:** Полноценный онлайн-мультиплеер на базе Supabase Realtime Channels. Ходы передаются между игроками мгновенно и без задержек.
