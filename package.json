@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@next/swc-wasm-nodejs": "16.2.6",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "braces": "^3.0.3",
     "framer-motion": "^11.18.2",
